@@ -1,0 +1,1072 @@
+<!-- templates/driver_dashboard.html -->
+{% extends "base.html" %} {% block title %}Driver Dashboard | University Bus
+Tracker{% endblock %} {% block content %}
+<style>
+  /* Custom styles for Leaflet attribution */
+  .leaflet-control-attribution {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    font-size: 8px !important;
+    padding: 2px 4px !important;
+    bottom: 0 !important;
+  }
+  .leaflet-control-attribution a {
+    color: #777 !important;
+    text-decoration: none !important;
+  }
+  #driverMap {
+    height: 400px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+</style>
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    <div
+      class="col-lg-2 dashboard-sidebar p-4 bg-dark"
+      style="
+        min-height: calc(100vh - 56px);
+        position: sticky;
+        top: 56px;
+        z-index: 1000;
+        overflow-y: auto;
+      "
+    >
+      <h5 class="mb-4 text-light">Driver Dashboard</h5>
+      <div class="nav flex-column nav-pills" id="sidebarNav" role="tablist">
+        <a
+          class="nav-link active text-light"
+          id="dashboard-tab"
+          data-bs-toggle="tab"
+          href="#dashboard"
+          role="tab"
+          aria-controls="dashboard"
+          aria-selected="true"
+        >
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+        <a
+          class="nav-link text-light"
+          id="current-route-tab"
+          data-bs-toggle="tab"
+          href="#current-route"
+          role="tab"
+          aria-controls="current-route"
+          aria-selected="false"
+        >
+          <i class="fas fa-map-marked-alt"></i> Current Route
+        </a>
+        <a
+          class="nav-link text-light"
+          id="route-history-tab"
+          data-bs-toggle="tab"
+          href="#route-history"
+          role="tab"
+          aria-controls="route-history"
+          aria-selected="false"
+        >
+          <i class="fas fa-route"></i> Route History
+        </a>
+        <a
+          class="nav-link text-light"
+          id="schedule-tab"
+          data-bs-toggle="tab"
+          href="#schedule"
+          role="tab"
+          aria-controls="schedule"
+          aria-selected="false"
+        >
+          <i class="fas fa-clock"></i> Schedule
+        </a>
+        <a
+          class="nav-link text-light"
+          id="report-issue-tab"
+          data-bs-toggle="tab"
+          href="#report-issue"
+          role="tab"
+          aria-controls="report-issue"
+          aria-selected="false"
+        >
+          <i class="fas fa-exclamation-triangle"></i> Report Issue
+        </a>
+        <a
+          class="nav-link text-light"
+          id="settings-tab"
+          data-bs-toggle="tab"
+          href="#settings"
+          role="tab"
+          aria-controls="settings"
+          aria-selected="false"
+        >
+          <i class="fas fa-cog"></i> Settings
+        </a>
+        <a
+          class="nav-link text-light"
+          id="passenger-count-tab"
+          data-bs-toggle="tab"
+          href="#passenger-count"
+          role="tab"
+          aria-controls="passenger-count"
+          aria-selected="false"
+        >
+          <i class="fas fa-users"></i> Passenger Count
+        </a>
+        <a
+          class="nav-link text-light"
+          id="emergency-tab"
+          data-bs-toggle="tab"
+          href="#emergency"
+          role="tab"
+          aria-controls="emergency"
+          aria-selected="false"
+        >
+          <i class="fas fa-ambulance"></i> Emergency Assistance
+        </a>
+        <!-- <a href="{{ url_for('logout') }}" class="nav-link text-light">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a> -->
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-10 p-4">
+      <div class="tab-content">
+        <!-- Dashboard Section -->
+        <div
+          class="tab-pane fade show active"
+          id="dashboard"
+          role="tabpanel"
+          aria-labelledby="dashboard-tab"
+        >
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Welcome, {{ current_user.username }}!</h2>
+            <button id="startRouteBtn" class="btn btn-primary">
+              <i class="fas fa-play me-2"></i> Start Route
+            </button>
+          </div>
+
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-dark text-white">
+                  <h5 class="mb-0">Current Route</h5>
+                </div>
+                <div class="card-body">
+                  <h5 class="card-title">
+                    Route #{{ current_route_data.route_number }} - {{
+                    current_route_data.route_name }}
+                  </h5>
+                  <p class="card-text">
+                    <strong>Status:</strong>
+                    <span class="badge bg-warning"
+                      >{{ current_route_data.status }}</span
+                    >
+                  </p>
+                  <p class="card-text">
+                    <strong>Bus:</strong> {{ current_route_data.bus }}
+                  </p>
+                  <p class="card-text">
+                    <strong>Scheduled Departure:</strong> {{
+                    current_route_data.departure }}
+                  </p>
+                  <div class="d-grid">
+                    <button
+                      id="viewRouteDetailsBtn"
+                      class="btn btn-outline-primary"
+                    >
+                      View Route Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-dark text-white">
+                  <h5 class="mb-0">GPS Status</h5>
+                </div>
+                <div class="card-body">
+                  <div class="d-flex align-items-center mb-3">
+                    <div class="feature-icon me-3">
+                      <i class="fas fa-satellite-dish"></i>
+                    </div>
+                    <div>
+                      <h5 class="mb-0">GPS Signal</h5>
+                      <p id="locationStatus" class="mb-0 text-success">
+                        Strong Signal
+                      </p>
+                    </div>
+                  </div>
+                  <p class="card-text">
+                    <strong>Last Update:</strong> <span id="lastUpdateTime">Just now</span>
+                  </p>
+                  <p class="card-text">
+                    <strong>Location Services:</strong>
+                    <span class="badge bg-success">Active</span>
+                  </p>
+                  <p class="card-text">
+                    <strong>Current Location:</strong>
+                    <span id="currentLocation">Loading...</span>
+                  </p>
+                  <div class="d-grid">
+                    <button id="refreshGPSBtn" class="btn btn-outline-primary">
+                      Refresh GPS
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Route Section -->
+        <div
+          class="tab-pane fade"
+          id="current-route"
+          role="tabpanel"
+          aria-labelledby="current-route-tab"
+        >
+          <div class="row">
+            <div class="col-md-8">
+              <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                  <h5 class="mb-0">Live Location</h5>
+                </div>
+                <div class="card-body">
+                  <div id="driverMap"></div>
+                  <div class="mt-3">
+                    <button id="refreshLocationBtn" class="btn btn-primary">
+                      <i class="fas fa-sync-alt me-2"></i> Refresh Location
+                    </button>
+                    <button id="centerMapBtn" class="btn btn-secondary">
+                      <i class="fas fa-crosshairs me-2"></i> Center Map
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-header bg-dark text-white">
+                  <h5 class="mb-0">Location Details</h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <h6>Current Location</h6>
+                    <p id="currentLocation" class="text-muted">Loading...</p>
+                  </div>
+                  <div class="mb-3">
+                    <h6>GPS Accuracy</h6>
+                    <p id="gpsAccuracy" class="text-muted">Loading...</p>
+                  </div>
+                  <div class="mb-3">
+                    <h6>Last Update</h6>
+                    <p id="lastUpdateTime" class="text-muted">Loading...</p>
+                  </div>
+                  <div class="mb-3">
+                    <h6>Speed</h6>
+                    <p id="currentSpeed" class="text-muted">Loading...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Route History Section -->
+        <div
+          class="tab-pane fade"
+          id="route-history"
+          role="tabpanel"
+          aria-labelledby="route-history-tab"
+        >
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">Route History</h5>
+            </div>
+            <div class="card-body">
+              <ul class="list-group">
+                {% for schedule in route_history %}
+                <li class="list-group-item">
+                  Route #{{ schedule.route_id }} - {{
+                  schedule.departure_time.strftime('%I:%M %p') }} to {{
+                  schedule.arrival_time.strftime('%I:%M %p') }}
+                  <span class="badge bg-secondary float-end"
+                    >{{ schedule.status }}</span
+                  >
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule Section -->
+        <div
+          class="tab-pane fade"
+          id="schedule"
+          role="tabpanel"
+          aria-labelledby="schedule-tab"
+        >
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">Today's Schedule</h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Route</th>
+                      <th>Departure</th>
+                      <th>Estimated Return</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for schedule in schedule %}
+                    <tr>
+                      <td>Route #{{ schedule.route_id }} - {{ route.name }}</td>
+                      <td>
+                        {{ schedule.departure_time.strftime('%I:%M %p') }}
+                      </td>
+                      <td>{{ schedule.arrival_time.strftime('%I:%M %p') }}</td>
+                      <td>
+                        <span
+                          class="badge bg-{{ 'warning' if schedule.status == 'in-progress' else 'secondary' }}"
+                          >{{ schedule.status }}</span
+                        >
+                      </td>
+                      <td>
+                        <button
+                          class="btn btn-sm btn-success start-route-btn"
+                          data-schedule-id="{{ schedule.id }}"
+                        >
+                          Start
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary">
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Issue Section -->
+        <div
+          class="tab-pane fade"
+          id="report-issue"
+          role="tabpanel"
+          aria-labelledby="report-issue-tab"
+        >
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">Report Issue</h5>
+            </div>
+            <div class="card-body">
+              <form
+                id="reportIssueForm"
+                method="POST"
+                action="{{ url_for('report_issue') }}"
+              >
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                  <label class="form-label">Issue Description</label>
+                  {{ form.issue(class="form-control", rows="3") }}
+                </div>
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    Submit Issue
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div
+          class="tab-pane fade"
+          id="settings"
+          role="tabpanel"
+          aria-labelledby="settings-tab"
+        >
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">Settings</h5>
+            </div>
+            <div class="card-body">
+              <form
+                id="changePasswordForm"
+                method="POST"
+                action="{{ url_for('change_password') }}"
+              >
+                {{ password_form.hidden_tag() }}
+                <div class="mb-3">
+                  <label class="form-label">Current Password</label>
+                  {{ password_form.current_password(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">New Password</label>
+                  {{ password_form.new_password(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Confirm Password</label>
+                  {{ password_form.confirm_password(class="form-control") }}
+                </div>
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    Change Password
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Passenger Count Section -->
+        <div
+          class="tab-pane fade"
+          id="passenger-count"
+          role="tabpanel"
+          aria-labelledby="passenger-count-tab"
+        >
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">Passenger Count</h5>
+            </div>
+            <div class="card-body">
+              <form id="passengerCountForm">
+                <div class="mb-3">
+                  <label class="form-label">Enter Passenger Count</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="passengerCountInput"
+                    placeholder="Enter number of passengers"
+                  />
+                </div>
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    Submit Count
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Assistance Section -->
+        <div
+          class="tab-pane fade"
+          id="emergency"
+          role="tabpanel"
+          aria-labelledby="emergency-tab"
+        >
+          <div class="card">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">Emergency Assistance</h5>
+            </div>
+            <div class="card-body">
+              <p>
+                If you are in an emergency, click the button below to notify the
+                dispatch team immediately.
+              </p>
+              <div class="d-grid">
+                <button id="emergencyBtn" class="btn btn-danger">
+                  <i class="fas fa-bell"></i> Request Assistance
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 mt-4">
+        <div class="card">
+          <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Vehicle Status</h5>
+          </div>
+          <div class="card-body">
+            <form id="vehicleStatusForm">
+              <div class="mb-3">
+                <label class="form-label">Fuel Level</label>
+                <div class="progress">
+                  <div
+                    class="progress-bar bg-success"
+                    role="progressbar"
+                    style="width: 85%"
+                  >
+                    85%
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Vehicle Condition</label>
+                <select class="form-select" name="condition">
+                  <option selected>Good - No Issues</option>
+                  <option>Minor Issues - Needs Attention</option>
+                  <option>Major Issues - Service Required</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea
+                  class="form-control"
+                  name="notes"
+                  rows="3"
+                  placeholder="Any notes about vehicle condition..."
+                ></textarea>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">
+                  Submit Report
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 mt-4">
+        <div class="card">
+          <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Quick Actions</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="d-grid">
+                  <button id="reportIssueQuickBtn" class="btn btn-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i> Report Issue
+                  </button>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="d-grid">
+                  <button id="reportDelayBtn" class="btn btn-warning">
+                    <i class="fas fa-traffic-light me-2"></i> Report Delay
+                  </button>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="d-grid">
+                  <button id="contactDispatchBtn" class="btn btn-dark">
+                    <i class="fas fa-comment-alt me-2"></i> Contact Dispatch
+                  </button>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="d-grid">
+                  <button id="passengerCountBtn" class="btn btn-secondary">
+                    <i class="fas fa-users me-2"></i> Passenger Count
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<!-- Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    let driverMap;
+    let driverMarker;
+    let accuracyCircle;
+    let lastSentLat = null;
+    let lastSentLng = null;
+    let watchId = null;
+
+    // --- BEGIN: Robust Geolocation and Map Logic (from reference project) ---
+    function initializeDriverMap() {
+        const mapContainer = document.getElementById('driverMap');
+        const mapDiv = document.createElement('div');
+        mapDiv.style.height = '400px';
+        mapDiv.style.width = '100%';
+        mapContainer.innerHTML = '';
+        mapContainer.appendChild(mapDiv);
+
+        const userLat = parseFloat(localStorage.getItem("userLat")) || 16.3067;
+        const userLng = parseFloat(localStorage.getItem("userLng")) || 80.4365;
+
+        const map = L.map(mapDiv).setView([userLat, userLng], 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            minZoom: 10
+        }).addTo(map);
+
+        let userMarker = L.marker([userLat, userLng], {
+            draggable: false,
+            title: "Your current location",
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        }).addTo(map);
+
+        let accuracyCircle = L.circle([userLat, userLng], {
+            color: '#3388ff',
+            fillColor: '#3388ff',
+            fillOpacity: 0.15,
+            weight: 2,
+            radius: 0
+        }).addTo(map);
+
+        userMarker.bindPopup("Your current location").openPopup();
+        let watchId = null;
+
+        function isValidPosition(lat, lng, accuracy) {
+            if (typeof lat !== 'number' || typeof lng !== 'number' || typeof accuracy !== 'number') return false;
+            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+            if (accuracy <= 0 || accuracy > 1000) return false;
+            return true;
+        }
+
+        function handlePositionUpdate(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const speed = position.coords.speed;
+            const heading = position.coords.heading;
+            const timestamp = position.timestamp;
+            if (!isValidPosition(lat, lng, accuracy)) {
+                console.warn('Invalid position received:', { lat, lng, accuracy });
+                return;
+            }
+            localStorage.setItem("userLat", lat.toString());
+            localStorage.setItem("userLng", lng.toString());
+            localStorage.setItem("lastLocationUpdate", new Date(timestamp).toISOString());
+            const newLatLng = [lat, lng];
+            if (userMarker.getLatLng()) {
+                const currentPos = userMarker.getLatLng();
+                if (currentPos.distanceTo(newLatLng) > accuracy) {
+                    userMarker.setLatLng(newLatLng);
+                    accuracyCircle.setLatLng(newLatLng);
+                    accuracyCircle.setRadius(accuracy);
+                }
+            } else {
+                userMarker.setLatLng(newLatLng);
+                accuracyCircle.setLatLng(newLatLng);
+                accuracyCircle.setRadius(accuracy);
+            }
+            if (accuracy <= 50) {
+                const busId = document.getElementById('busId')?.value;
+                fetch(`/api/bus_location/${busId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
+                    },
+                    body: JSON.stringify({ 
+                        lat, 
+                        lng,
+                        accuracy,
+                        speed: speed || null,
+                        heading: heading || null,
+                        timestamp: new Date(timestamp).toISOString(),
+                        provider: 'GPS'
+                    })
+                }).catch(console.error);
+            }
+        }
+
+        function handleLocationError(error) {
+            let errorMessage = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "Please enable location services in your browser settings.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "Location unavailable. Please check your GPS settings.";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "Location request timed out. Please try again.";
+                    break;
+                default:
+                    errorMessage = "Location error: " + error.message;
+            }
+            console.error('Location Error:', errorMessage);
+            alert(errorMessage);
+        }
+
+        function startRobustDriverLocationWatch() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            watchId = navigator.geolocation.watchPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    const speed = position.coords.speed;
+                    const timestamp = position.timestamp;
+                    // Only send if valid, changed, and accurate
+                    if (
+                        typeof lat === 'number' && typeof lng === 'number' &&
+                        !isNaN(lat) && !isNaN(lng) &&
+                        lat !== 0 && lng !== 0 &&
+                        accuracy <= 50 &&
+                        (lat !== lastSentLat || lng !== lastSentLng)
+                    ) {
+                        lastSentLat = lat;
+                        lastSentLng = lng;
+                        updateDriverLocation(lat, lng, accuracy, speed);
+                        console.log('[DRIVER] Sent location:', {lat, lng, accuracy, speed, timestamp});
+                    } else {
+                        console.warn('[DRIVER] Not sending location (invalid, unchanged, or inaccurate):', {lat, lng, accuracy, lastSentLat, lastSentLng});
+                    }
+                },
+                function(error) {
+                    console.error('[DRIVER] Geolocation error:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 1000
+                }
+            );
+        }
+
+        const customControl = L.control({ position: "bottomright" });
+        customControl.onAdd = function (map) {
+            const div = L.DomUtil.create("div", "leaflet-control");
+            div.innerHTML = `
+                <div class="btn-group" role="group" style="background: white; padding: 5px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.65)">
+                    <button id="updateLocationBtn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-location-arrow"></i> Update Location
+                    </button>
+                    <button id="centerMapBtn" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-crosshairs"></i> Center Map
+                    </button>
+                </div>
+            `;
+            return div;
+        };
+        customControl.addTo(map);
+
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'updateLocationBtn') {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        handlePositionUpdate,
+                        handleLocationError,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 30000,
+                            maximumAge: 0
+                        }
+                    );
+                }
+            } else if (e.target && e.target.id === 'centerMapBtn') {
+                if (userMarker) {
+                    map.setView(userMarker.getLatLng(), 17);
+                }
+            }
+        });
+
+        startRobustDriverLocationWatch();
+        map.on('remove', function() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
+        return map;
+    }
+    // --- END: Robust Geolocation and Map Logic ---
+
+    function updateDriverLocation(lat, lng, accuracy, speed) {
+        lat = parseFloat(lat);
+        lng = parseFloat(lng);
+        if (isNaN(lat) || isNaN(lng)) {
+            console.warn('Not sending invalid driver location:', {lat, lng, accuracy, speed});
+            return;
+        }
+        const busId = document.getElementById('busId').value;
+        console.log('Sending driver location to backend:', {lat, lng, accuracy, speed, busId});
+        fetch(`/api/bus_location/${busId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
+            },
+            body: JSON.stringify({
+                lat,
+                lng,
+                accuracy,
+                speed: speed || null,
+                timestamp: new Date().toISOString()
+            })
+        }).catch(console.error);
+    }
+
+    // Initialize map when current route tab is shown
+    document.querySelector('#current-route-tab').addEventListener('shown.bs.tab', function (e) {
+        if (!driverMap) {
+            driverMap = initializeDriverMap();
+        } else {
+            driverMap.invalidateSize();
+        }
+    });
+
+    // Refresh location button
+    document.getElementById('refreshLocationBtn').addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          handlePositionUpdate,
+          handleLocationError,
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      }
+    });
+
+    // Center map button
+    document.getElementById('centerMapBtn').addEventListener('click', function() {
+      if (driverMarker) {
+        driverMap.setView(driverMarker.getLatLng(), driverMap.getZoom());
+      }
+    });
+
+    // Cleanup when leaving the page
+    window.addEventListener('beforeunload', function() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    });
+
+    // Ensure the first tab is active on load
+    const firstTab = new bootstrap.Tab(
+      document.querySelector("#sidebarNav .nav-link.active")
+    );
+    if (firstTab) firstTab.show();
+
+    // Tab navigation
+    const triggerTabList = document.querySelectorAll("#sidebarNav .nav-link");
+    triggerTabList.forEach((triggerEl) => {
+      triggerEl.addEventListener("click", function (e) {
+        e.preventDefault();
+        const tabTrigger = new bootstrap.Tab(this);
+        tabTrigger.show();
+        document
+          .querySelectorAll("#sidebarNav .nav-link")
+          .forEach((link) => link.classList.remove("active"));
+        this.classList.add("active");
+      });
+    });
+
+    // Button event handlers
+    document
+      .getElementById("startRouteBtn")
+      .addEventListener("click", function () {
+        if (confirm("Are you sure you want to start the route?")) {
+          const busId = document.getElementById("busId").value;
+          fetch("/api/start_route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bus_id: busId }),
+          })
+            .then((response) => response.json())
+            .then((result) => alert(result.message))
+            .catch((error) => console.error("Error:", error));
+        }
+      });
+
+    document
+      .getElementById("viewRouteDetailsBtn")
+      .addEventListener("click", function () {
+        alert(
+          "Route Details: Route #{{ current_route_data.route_number }} - {{ current_route_data.route_name }}"
+        );
+      });
+
+    document
+      .getElementById("vehicleStatusForm")
+      .addEventListener("submit", function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = {
+          condition: formData.get("condition"),
+          notes: formData.get("notes"),
+        };
+        fetch("/api/submit_vehicle_status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        })
+          .then((response) => response.json())
+          .then((result) => alert(result.message))
+          .catch((error) => console.error("Error:", error));
+      });
+
+    document.querySelectorAll(".start-route-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const scheduleId = this.getAttribute("data-schedule-id");
+        if (confirm("Start this route?")) {
+          fetch("/api/start_route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bus_id: document.getElementById("busId").value,
+              schedule_id: scheduleId,
+            }),
+          })
+            .then((response) => response.json())
+            .then((result) => alert(result.message))
+            .catch((error) => console.error("Error:", error));
+        }
+      });
+    });
+
+    // Quick Action Button Functionality
+    document
+      .getElementById("reportIssueQuickBtn")
+      .addEventListener("click", function () {
+        const issue = prompt("Enter issue description:");
+        if (issue) {
+          console.log("Reported Issue:", issue);
+          alert("Issue reported: " + issue + ". Check console for details.");
+        }
+      });
+
+    document
+      .getElementById("reportDelayBtn")
+      .addEventListener("click", function () {
+        const delay = prompt("Enter delay in minutes:");
+        if (delay && !isNaN(delay)) {
+          alert("Reported delay of " + delay + " minutes.");
+        } else {
+          alert("Please enter a valid number of minutes.");
+        }
+      });
+
+    document
+      .getElementById("contactDispatchBtn")
+      .addEventListener("click", function () {
+        const message = prompt("Enter message for dispatch:");
+        if (message) {
+          console.log("Message to Dispatch:", message);
+          alert(
+            "Message sent to dispatch: " +
+              message +
+              ". Check console for details."
+          );
+        }
+      });
+
+    document
+      .getElementById("passengerCountBtn")
+      .addEventListener("click", function () {
+        const count = prompt("Enter passenger count:");
+        if (count && !isNaN(count)) {
+          alert("Passenger count reported: " + count + " passengers.");
+        } else {
+          alert("Please enter a valid number.");
+        }
+      });
+
+    // Passenger Count Form Submission
+    document
+      .getElementById("passengerCountForm")
+      .addEventListener("submit", function (e) {
+        e.preventDefault();
+        const count = document.getElementById("passengerCountInput").value;
+        if (count && !isNaN(count)) {
+          alert("Passenger count submitted: " + count);
+          // Add API call here to submit the count
+        } else {
+          alert("Please enter a valid number.");
+        }
+      });
+
+    // Emergency Assistance Button
+    document
+      .getElementById("emergencyBtn")
+      .addEventListener("click", function () {
+        if (confirm("Are you sure you want to request emergency assistance?")) {
+          alert("Emergency assistance requested.");
+          // Add API call here to notify dispatch
+        }
+      });
+  });
+</script>
+
+<style>
+  .leaflet-control-attribution {
+    font-size: 8px !important;
+  }
+  
+  #driverMap {
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  .user-location-dot-container {
+    position: relative;
+    width: 20px;
+    height: 20px;
+  }
+
+  .user-location-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background-color: #4A90E2;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+
+  .user-location-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background-color: rgba(74, 144, 226, 0.3);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(3);
+      opacity: 0;
+    }
+  }
+</style>
+{% endblock %}

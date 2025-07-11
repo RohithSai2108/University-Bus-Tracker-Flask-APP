@@ -1,0 +1,164 @@
+{% extends "base.html" %} {% block title %}Home | University Bus Tracker{%
+endblock %} {% block content %}
+<section class="hero-section">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <h1 class="display-4 fw-bold mb-4">
+          Track Your University Bus in Real-Time
+        </h1>
+        <p class="lead mb-4">
+          Never miss a bus again. Get real-time updates on bus locations,
+          routes, and estimated arrival times.
+        </p>
+        <div class="d-flex">
+          <a href="{{ url_for('login') }}" class="btn btn-light btn-lg me-3">
+            <i class="fas fa-sign-in-alt me-2"></i> Login
+          </a>
+          <a
+            href="{{ url_for('register') }}"
+            class="btn btn-outline-light btn-lg"
+          >
+            <i class="fas fa-user-plus me-2"></i> Register
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        <img
+          src="https://srmap.edu.in/wp-content/uploads/2022/09/srm-epic-building.jpg"
+          alt="placeholder"
+          class="img-fluid hero-image rounded-3 shadow"
+        />
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features-section py-5">
+  <div class="container">
+    <h2 class="text-center mb-5">Our Features</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 text-center p-4">
+          <div class="feature-icon mx-auto">
+            <i class="fas fa-map-marked-alt"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Real-Time Tracking</h5>
+            <p class="card-text">
+              Track buses in real-time with our interactive map interface. Get
+              accurate locations updated every few seconds.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 text-center p-4">
+          <div class="feature-icon mx-auto">
+            <i class="fas fa-bell"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Arrival Notifications</h5>
+            <p class="card-text">
+              Receive notifications when your bus is approaching your stop.
+              Never miss your ride again.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 text-center p-4">
+          <div class="feature-icon mx-auto">
+            <i class="fas fa-route"></i>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Route Planning</h5>
+            <p class="card-text">
+              Plan your journey with our route planner. Find the best bus routes
+              to reach your destination on time.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <h2 class="mb-4">For Students</h2>
+        <p class="mb-4">As a student, you'll have access to:</p>
+        <ul class="list-group list-group-flush mb-4">
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Real-time bus
+            tracking
+          </li>
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Arrival
+            notifications
+          </li>
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Route
+            information
+          </li>
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Schedule
+            lookups
+          </li>
+        </ul>
+        <a href="{{ url_for('register') }}" class="btn btn-primary"
+          >Register as Student</a
+        >
+      </div>
+      <div class="col-lg-6">
+        <img
+          src="https://srmap.edu.in/wp-content/uploads/2023/12/IMG_8507-srmap-scaled.jpg"
+          alt="placeholder"
+          class="img-fluid rounded-3 shadow"
+        />
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6 order-lg-2">
+        <h2 class="mb-4">For Drivers</h2>
+        <p class="mb-4">As a driver, you'll have access to:</p>
+        <ul class="list-group list-group-flush mb-4">
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Route
+            management
+          </li>
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Schedule
+            updates
+          </li>
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Passenger
+            counts
+          </li>
+          <li class="list-group-item bg-transparent">
+            <i class="fas fa-check-circle text-success me-2"></i> Incident
+            reporting
+          </li>
+        </ul>
+        <a href="{{ url_for('register') }}" class="btn btn-primary"
+          >Register as Driver</a
+        >
+      </div>
+      <div class="col-lg-6 order-lg-1">
+        <img
+          src="https://media.istockphoto.com/id/1264589335/photo/school-bus-driver.jpg?s=612x612&w=0&k=20&c=KgeRCpHNmi6ercAJm5b0i_7TrTkcIzuW3zv09gyiDWA="
+          alt="placeholder"
+          class="img-fluid rounded-3 shadow"
+        />
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

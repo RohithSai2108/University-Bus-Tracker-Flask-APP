@@ -1,0 +1,1442 @@
+<!-- templates/student_dashboard.html -->
+{% extends "base.html" %} {% block title %}Student Dashboard | University Bus
+Tracker{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-lg-2 dashboard-sidebar p-4">
+      <div class="d-flex align-items-center mb-4">
+        <div class="bg-primary rounded-circle p-2 text-white me-2">
+          <i class="fas fa-user-graduate"></i>
+        </div>
+        <div>
+          <p class="fw-bold mb-0">{{ current_user.username }}</p>
+          <small class="text-muted">Student</small>
+        </div>
+      </div>
+      <div class="nav flex-column">
+        <a href="#" class="nav-link active" data-section="dashboard">
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+        <a href="#" class="nav-link" data-section="track-buses">
+          <i class="fas fa-map-marked-alt"></i> Track Buses
+        </a>
+        <a href="#" class="nav-link" data-section="routes">
+          <i class="fas fa-route"></i> Routes
+        </a>
+        <a href="#" class="nav-link" data-section="notifications">
+          <i class="fas fa-bell"></i> Notifications
+        </a>
+        <a href="#" class="nav-link" data-section="profile">
+          <i class="fas fa-user-cog"></i> Profile
+        </a>
+        <a href="#" class="nav-link" data-section="route-requests">
+          <i class="fas fa-exchange-alt"></i> Route Requests
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-10 p-4">
+      <!-- Welcome Banner -->
+      <div class="card mb-4 bg-primary text-white">
+        <div class="card-body p-4">
+          <div class="row align-items-center">
+            <div class="col">
+              <h2 class="mb-1">Welcome back, {{ current_user.username }}!</h2>
+              <p class="mb-0">
+                Here's what's happening with your bus routes today.
+              </p>
+            </div>
+            <div class="col-auto">
+              <div class="display-4">
+                <i class="fas fa-bus"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <!-- Dashboard Section -->
+      <div class="dashboard-section active" id="dashboard">
+        <div class="row g-4 mb-4">
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">Next Bus</h5>
+                <div
+                  class="d-flex align-items-center justify-content-between mb-3"
+                >
+                  <div>
+                    <h3 class="mb-0">Route #3</h3>
+                    <p class="text-muted mb-0">Campus Center → Dorms</p>
+                  </div>
+                  <div class="fs-2 text-primary">
+                    <i class="fas fa-bus"></i>
+                  </div>
+                </div>
+                <div
+                  class="d-flex justify-content-between align-items-center mb-3"
+                >
+                  <div>
+                    <div class="fs-4 fw-bold text-danger">10 min</div>
+                    <div class="text-muted">Arriving at: 3:45 PM</div>
+                  </div>
+                  <div>
+                    <span class="badge bg-success">On Time</span>
+                  </div>
+                </div>
+                <div class="progress mb-2" style="height: 8px">
+                  <div
+                    class="progress-bar bg-primary"
+                    role="progressbar"
+                    style="width: 65%"
+                  ></div>
+                </div>
+                <div class="d-flex justify-content-between text-muted">
+                  <small>Library</small>
+                  <small>Science Bldg</small>
+                  <small>Dorms</small>
+                </div>
+                <button
+                  class="btn btn-primary w-100 mt-3 track-route"
+                  data-route="3"
+                >
+                  Track This Bus
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">Favorite Routes</h5>
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item px-0">
+                    <div
+                      class="d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        <strong>Route #3</strong>
+                        <div class="text-muted small">
+                          Campus Center → Dorms
+                        </div>
+                      </div>
+                      <button
+                        class="btn btn-sm btn-outline-primary track-route"
+                        data-route="3"
+                      >
+                        Track
+                      </button>
+                    </div>
+                  </li>
+                  <li class="list-group-item px-0">
+                    <div
+                      class="d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        <strong>Route #1</strong>
+                        <div class="text-muted small">Main Gate → Library</div>
+                      </div>
+                      <button
+                        class="btn btn-sm btn-outline-primary track-route"
+                        data-route="1"
+                      >
+                        Track
+                      </button>
+                    </div>
+                  </li>
+                  <li class="list-group-item px-0">
+                    <div
+                      class="d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        <strong>Route #5</strong>
+                        <div class="text-muted small">
+                          Sports Center → Main Campus
+                        </div>
+                      </div>
+                      <button
+                        class="btn btn-sm btn-outline-primary track-route"
+                        data-route="5"
+                      >
+                        Track
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+                <button class="btn btn-link w-100 mt-2">
+                  Manage Favorites
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">Recent Notifications</h5>
+                <div class="notification-list">
+                  {% if notifications %}
+                    {% for notification in notifications[:5] %}
+                    <div class="notification-item p-2 mb-2 bg-light rounded">
+                      <div class="d-flex">
+                        <div class="flex-shrink-0">
+                          <i class="fas fa-{{ 'exclamation-circle' if notification.type == 'urgent' else 'exclamation-triangle' if notification.type == 'important' else 'info-circle' }} text-{{ 'danger' if notification.type == 'urgent' else 'warning' if notification.type == 'important' else 'info' }}"></i>
+                        </div>
+                        <div class="ms-2">
+                          <div class="fw-bold">{{ notification.message }}</div>
+                          <div class="text-muted smaller">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  {% else %}
+                    <p class="text-muted">No notifications</p>
+                  {% endif %}
+                </div>
+                <button class="btn btn-link w-100 mt-2" id="viewAllNotifications">View All</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div
+            class="card-header d-flex justify-content-between align-items-center"
+          >
+            <h5 class="mb-0">Campus Bus Map</h5>
+            <button class="btn btn-sm btn-outline-primary" id="expandMapView">Expand View</button>
+          </div>
+          <div class="card-body p-0">
+            <div
+              class="bg-light rounded"
+              style="height: 300px"
+              id="dashboardMap"
+            >
+              <!-- Map will be initialized here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Recent Activity</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Route</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Mar 19, 2:30 PM</td>
+                    <td>Route #3</td>
+                    <td>Checked ETA</td>
+                    <td><span class="badge bg-success">Completed</span></td>
+                  </tr>
+                  <tr>
+                    <td>Mar 19, 10:15 AM</td>
+                    <td>Route #1</td>
+                    <td>Boarded Bus</td>
+                    <td><span class="badge bg-success">Completed</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Track Buses Section -->
+      <div class="dashboard-section" id="track-buses">
+        <h3 class="mb-4">Track Buses</h3>
+        <div class="card">
+          <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+              <li class="nav-item">
+                <a class="nav-link active" href="#" data-view="map">Map View</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-view="list">List View</a>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="routeSelect" class="form-label">Select Route</label>
+              <select class="form-select" id="routeSelect">
+                <option value="all">All Routes</option>
+                <option value="1">Route #1: Main Gate → Library</option>
+                <option value="2">Route #2: Library → Science Building</option>
+                <option value="3">Route #3: Campus Center → Dorms</option>
+                <option value="4">
+                  Route #4: Main Campus → Student Housing
+                </option>
+                <option value="5">Route #5: Sports Center → Main Campus</option>
+              </select>
+            </div>
+            <div class="view-content" id="map-view">
+              <div
+                class="bg-light rounded"
+                style="height: 400px"
+                id="busMap"
+              ></div>
+            </div>
+            <div class="view-content d-none" id="list-view">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Route</th>
+                      <th>Current Location</th>
+                      <th>ETA</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="busList"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body" id="busDetails">
+                    <h6>Selected Bus Details</h6>
+                    <p class="text-muted small">
+                      Select a bus to view real-time details
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <h6>Legend</h6>
+                    <div class="d-flex align-items-center mb-2">
+                      <div
+                        class="bg-primary rounded-circle me-2"
+                        style="width: 12px; height: 12px"
+                      ></div>
+                      <span>Active Bus</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                      <div
+                        class="bg-warning rounded-circle me-2"
+                        style="width: 12px; height: 12px"
+                      ></div>
+                      <span>Delayed Bus</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="bg-danger rounded-circle me-2"
+                        style="width: 12px; height: 12px"
+                      ></div>
+                      <span>Out of Service</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Routes Section -->
+      <div class="dashboard-section" id="routes">
+        <h3 class="mb-4">Bus Routes</h3>
+        <div class="text-center mt-4">
+          <!-- Add Geoapify search input -->
+          <div class="input-group mb-3">
+            <input type="text" id="locationSearch" class="form-control" placeholder="Search location...">
+            <button class="btn btn-primary" type="button" id="searchLocation">Search</button>
+          </div>
+        </div>
+        <div class="row g-4" id="routesContainer">
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">Route #1</h5>
+                <h6 class="text-muted">Main Gate → Library</h6>
+                <hr />
+                <h6>Stops:</h6>
+                <ol class="list-group list-group-numbered mb-3">
+                  <li class="list-group-item border-0 ps-0">Main Gate</li>
+                  <li class="list-group-item border-0 ps-0">Student Center</li>
+                  <li class="list-group-item border-0 ps-0">
+                    Faculty Buildings
+                  </li>
+                  <li class="list-group-item border-0 ps-0">Library</li>
+                </ol>
+                <h6>Current Status:</h6>
+                <p><span class="badge bg-success">2 buses active</span></p>
+                <h6>Schedule:</h6>
+                <p>Every 15 minutes (7:00 AM - 9:00 PM)</p>
+                <div class="d-grid gap-2">
+                  <button
+                    class="btn btn-outline-primary track-route"
+                    data-route="1"
+                  >
+                    Track Route
+                  </button>
+                  <button
+                    class="btn btn-outline-secondary toggle-details"
+                    data-route-id="1"
+                  >
+                    Show Details
+                  </button>
+                </div>
+                <div class="route-details mt-3 d-none" id="route-details-1">
+                  <h6>Next Departures:</h6>
+                  <ul class="list-unstyled">
+                    <li>2:45 PM (5 min)</li>
+                    <li>3:00 PM (20 min)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">Route #3</h5>
+                <h6 class="text-muted">Campus Center → Dorms</h6>
+                <hr />
+                <h6>Stops:</h6>
+                <ol class="list-group list-group-numbered mb-3">
+                  <li class="list-group-item border-0 ps-0">Campus Center</li>
+                  <li class="list-group-item border-0 ps-0">Library</li>
+                  <li class="list-group-item border-0 ps-0">
+                    Science Building
+                  </li>
+                  <li class="list-group-item border-0 ps-0">Dorms</li>
+                </ol>
+                <h6>Current Status:</h6>
+                <p><span class="badge bg-success">3 buses active</span></p>
+                <h6>Schedule:</h6>
+                <p>Every 10 minutes (7:00 AM - 11:00 PM)</p>
+                <div class="d-grid gap-2">
+                  <button
+                    class="btn btn-outline-primary track-route"
+                    data-route="3"
+                  >
+                    Track Route
+                  </button>
+                  <button
+                    class="btn btn-outline-secondary toggle-details"
+                    data-route-id="3"
+                  >
+                    Show Details
+                  </button>
+                </div>
+                <div class="route-details mt-3 d-none" id="route-details-3">
+                  <h6>Next Departures:</h6>
+                  <ul class="list-unstyled">
+                    <li>2:50 PM (10 min)</li>
+                    <li>3:00 PM (20 min)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">Route #5</h5>
+                <h6 class="text-muted">Sports Center → Main Campus</h6>
+                <hr />
+                <h6>Stops:</h6>
+                <ol class="list-group list-group-numbered mb-3">
+                  <li class="list-group-item border-0 ps-0">Sports Center</li>
+                  <li class="list-group-item border-0 ps-0">Student Housing</li>
+                  <li class="list-group-item border-0 ps-0">Medical Center</li>
+                  <li class="list-group-item border-0 ps-0">Main Campus</li>
+                </ol>
+                <h6>Current Status:</h6>
+                <p><span class="badge bg-success">1 bus active</span></p>
+                <h6>Schedule:</h6>
+                <p>Every 20 minutes (6:30 AM - 10:00 PM)</p>
+                <div class="d-grid gap-2">
+                  <button
+                    class="btn btn-outline-primary track-route"
+                    data-route="5"
+                  >
+                    Track Route
+                  </button>
+                  <button
+                    class="btn btn-outline-secondary toggle-details"
+                    data-route-id="5"
+                  >
+                    Show Details
+                  </button>
+                </div>
+                <div class="route-details mt-3 d-none" id="route-details-5">
+                  <h6>Next Departures:</h6>
+                  <ul class="list-unstyled">
+                    <li>3:00 PM (15 min)</li>
+                    <li>3:20 PM (35 min)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center mt-4">
+          <button class="btn btn-primary" id="viewAllRoutes">
+            View All Routes
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications Section -->
+      <div class="dashboard-section" id="notifications">
+        <h3 class="mb-4">Notifications</h3>
+        <div class="card">
+          <div class="card-body">
+            <div class="notification-list" id="notificationList">
+              {% if notifications %}
+                {% for notification in notifications %}
+                <div class="notification-item p-2 mb-2 bg-light rounded">
+                  <div class="d-flex">
+                    <div class="flex-shrink-0">
+                      <i class="fas fa-{{ 'exclamation-circle' if notification.type == 'urgent' else 'exclamation-triangle' if notification.type == 'important' else 'info-circle' }} text-{{ 'danger' if notification.type == 'urgent' else 'warning' if notification.type == 'important' else 'info' }}"></i>
+                    </div>
+                    <div class="ms-2">
+                      <div class="fw-bold">{{ notification.message }}</div>
+                      <div class="text-muted small">{{ notification.message }}</div>
+                      <div class="text-muted smaller">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              {% else %}
+                <p class="text-muted">No notifications</p>
+              {% endif %}
+            </div>
+            <button class="btn btn-link w-100 mt-2" id="clearNotifications">Clear All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Section -->
+      <div class="dashboard-section" id="profile">
+        <h3 class="mb-4">Profile Settings</h3>
+        <div class="card">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4 text-center">
+                <div
+                  class="bg-primary rounded-circle p-3 text-white d-inline-block mb-3"
+                >
+                  <i class="fas fa-user-graduate fa-3x"></i>
+                </div>
+                <h5>{{ current_user.username }}</h5>
+                <p class="text-muted">Student ID: STU{{ current_user.id }}</p>
+              </div>
+              <div class="col-md-8">
+                <form id="profileForm">
+                  <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input
+                      type="email"
+                      class="form-control"
+                      value="{{ current_user.email }}"
+                      readonly
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Preferred Campus Stop</label>
+                    <select class="form-select">
+                      <option>Library</option>
+                      <option>Campus Center</option>
+                      <option>Main Gate</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Notification Preferences</label>
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="emailNotif"
+                      />
+                      <label class="form-check-label" for="emailNotif"
+                        >Email Notifications</label
+                      >
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">
+                    Save Changes
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route Requests Section -->
+      <div class="dashboard-section" id="route-requests">
+        <h3 class="mb-4">Route Change Requests</h3>
+        <div class="card">
+          <div class="card-body">
+            <form id="routeRequestForm">
+              <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+              />
+              <div class="mb-3">
+                <label for="requestType" class="form-label">Request Type</label>
+                <select class="form-select" id="requestType">
+                  <option value="new">New Route</option>
+                  <option value="modify">Modify Existing Route</option>
+                  <option value="remove">Remove Route</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="routeNumber" class="form-label"
+                  >Route Number (if applicable)</label
+                >
+                <select class="form-select" id="routeNumber">
+                  <option value="">Select Route (for modify/remove)</option>
+                  <option value="1">Route #1: Main Gate → Library</option>
+                  <option value="2">
+                    Route #2: Library → Science Building
+                  </option>
+                  <option value="3">Route #3: Campus Center → Dorms</option>
+                  <option value="4">
+                    Route #4: Main Campus → Student Housing
+                  </option>
+                  <option value="5">
+                    Route #5: Sports Center → Main Campus
+                  </option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="requestDetails" class="form-label"
+                  >Request Details</label
+                >
+                <textarea
+                  class="form-control"
+                  id="requestDetails"
+                  rows="4"
+                  placeholder="Describe your route change request..."
+                ></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="reason" class="form-label"
+                  >Reason for Request</label
+                >
+                <textarea
+                  class="form-control"
+                  id="reason"
+                  rows="3"
+                  placeholder="Why is this change needed?"
+                ></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                Submit Request
+              </button>
+            </form>
+            <div class="mt-4">
+              <h5>Previous Requests</h5>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Route</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="requestHistory">
+                    <!-- Sample data -->
+                    <tr>
+                      <td>Mar 20</td>
+                      <td>New Route</td>
+                      <td>Downtown → Campus</td>
+                      <td><span class="badge bg-warning">Pending</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<!-- Replace Mappls SDK with Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Original Dashboard Functionality
+    // Sidebar navigation
+    const navLinks = document.querySelectorAll(".dashboard-sidebar .nav-link");
+    const sections = document.querySelectorAll(".dashboard-section");
+
+    navLinks.forEach((link) => {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+            navLinks.forEach((link) => link.classList.remove("active"));
+            sections.forEach((section) => section.classList.remove("active"));
+            this.classList.add("active");
+            const sectionId = this.getAttribute("data-section");
+            document.getElementById(sectionId).classList.add("active");
+            
+            // Initialize map when track-buses section is shown
+            if (sectionId === "track-buses") {
+                const busMap = document.getElementById('busMap');
+                if (busMap) {
+                    initializeMap('busMap');
+                }
+            }
+        });
+    });
+
+    // Track Buses functionality
+    const routeSelect = document.getElementById("routeSelect");
+    const viewTabs = document.querySelectorAll("#track-buses .nav-link");
+
+    viewTabs.forEach((tab) => {
+        tab.addEventListener("click", function (e) {
+            e.preventDefault();
+            viewTabs.forEach((t) => t.classList.remove("active"));
+            this.classList.add("active");
+            document.querySelectorAll(".view-content").forEach((view) => view.classList.add("d-none"));
+            document.getElementById(this.dataset.view + "-view").classList.remove("d-none");
+        });
+    });
+
+    routeSelect.addEventListener("change", function () {
+        const busList = document.getElementById("busList");
+        busList.innerHTML = this.value === "all"
+            ? '<tr><td colspan="4">Showing all active buses...</td></tr>'
+            : `<tr>
+                <td>Route #${this.value}</td>
+                <td>Current Stop</td>
+                <td>5 min</td>
+                <td><span class="badge bg-success">On Time</span></td>
+            </tr>`;
+    });
+
+    // Routes functionality
+    document.querySelectorAll(".toggle-details").forEach((btn) => {
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            const routeId = this.getAttribute("data-route-id");
+            const details = document.getElementById(`route-details-${routeId}`);
+            if (details) {
+                details.classList.toggle("d-none");
+                this.textContent = details.classList.contains("d-none") ? "Show Details" : "Hide Details";
+            }
+        });
+    });
+
+    document.querySelectorAll(".track-route").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            routeSelect.value = this.dataset.route;
+            routeSelect.dispatchEvent(new Event("change"));
+            document.querySelector('.nav-link[data-section="track-buses"]').click();
+        });
+    });
+
+    // Notifications functionality
+    document.getElementById("clearNotifications")?.addEventListener("click", function () {
+        document.getElementById("notificationList").innerHTML = '<p class="text-muted">No notifications</p>';
+    });
+
+    document.getElementById("viewAllNotifications")?.addEventListener("click", function () {
+        document.querySelector('.nav-link[data-section="notifications"]').click();
+    });
+
+    // Profile functionality
+    document.getElementById("profileForm")?.addEventListener("submit", function (e) {
+        e.preventDefault();
+        alert("Profile settings saved!");
+    });
+
+    // --- BEGIN: Robust Geolocation and Map Logic (from reference project) ---
+    function initializeMap(containerId) {
+        const mapContainer = document.getElementById(containerId);
+        // Create a new div for the map
+        const mapDiv = document.createElement('div');
+        mapDiv.style.height = '400px';
+        mapDiv.style.width = '100%';
+        mapContainer.innerHTML = '';
+        mapContainer.appendChild(mapDiv);
+
+        // Get last known position from localStorage or use Guntur coordinates as default
+        const userLat = parseFloat(localStorage.getItem("userLat")) || 16.3067;
+        const userLng = parseFloat(localStorage.getItem("userLng")) || 80.4365;
+
+        // Initialize map
+        const map = L.map(mapDiv).setView([userLat, userLng], 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            minZoom: 10
+        }).addTo(map);
+
+        let userMarker = L.marker([userLat, userLng], {
+            draggable: false,
+            title: "Your current location",
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        }).addTo(map);
+
+        let accuracyCircle = L.circle([userLat, userLng], {
+            color: '#3388ff',
+            fillColor: '#3388ff',
+            fillOpacity: 0.15,
+            weight: 2,
+            radius: 0
+        }).addTo(map);
+
+        userMarker.bindPopup("Your current location").openPopup();
+        let watchId = null;
+
+        function isValidPosition(lat, lng, accuracy) {
+            if (typeof lat !== 'number' || typeof lng !== 'number' || typeof accuracy !== 'number') return false;
+            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+            if (accuracy <= 0 || accuracy > 1000) return false;
+            return true;
+        }
+
+        function handlePositionUpdate(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const speed = position.coords.speed;
+            const heading = position.coords.heading;
+            const timestamp = position.timestamp;
+            if (!isValidPosition(lat, lng, accuracy)) {
+                console.warn('Invalid position received:', { lat, lng, accuracy });
+                return;
+            }
+            localStorage.setItem("userLat", lat.toString());
+            localStorage.setItem("userLng", lng.toString());
+            localStorage.setItem("lastLocationUpdate", new Date(timestamp).toISOString());
+            const newLatLng = [lat, lng];
+            if (userMarker.getLatLng()) {
+                const currentPos = userMarker.getLatLng();
+                if (currentPos.distanceTo(newLatLng) > accuracy) {
+                    userMarker.setLatLng(newLatLng);
+                    accuracyCircle.setLatLng(newLatLng);
+                    accuracyCircle.setRadius(accuracy);
+                }
+            } else {
+                userMarker.setLatLng(newLatLng);
+                accuracyCircle.setLatLng(newLatLng);
+                accuracyCircle.setRadius(accuracy);
+            }
+            if (accuracy <= 50) {
+                fetch('/api/update_user_location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
+                    },
+                    body: JSON.stringify({ 
+                        lat, 
+                        lng,
+                        accuracy,
+                        speed: speed || null,
+                        heading: heading || null,
+                        timestamp: new Date(timestamp).toISOString(),
+                        provider: 'GPS'
+                    })
+                }).catch(console.error);
+            }
+        }
+
+        function handleLocationError(error) {
+            let errorMessage = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "Please enable location services in your browser settings.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "Location unavailable. Please check your GPS settings.";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "Location request timed out. Please try again.";
+                    break;
+                default:
+                    errorMessage = "Location error: " + error.message;
+            }
+            console.error('Location Error:', errorMessage);
+            alert(errorMessage);
+        }
+
+        function startWatchingPosition() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    handlePositionUpdate,
+                    handleLocationError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 30000,
+                        maximumAge: 0
+                    }
+                );
+                watchId = navigator.geolocation.watchPosition(
+                    handlePositionUpdate,
+                    handleLocationError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 1000
+                    }
+                );
+                setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(
+                        handlePositionUpdate,
+                        handleLocationError,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 30000,
+                            maximumAge: 0
+                        }
+                    );
+                }, 60000);
+            }
+        }
+
+        // Add custom control buttons
+        const customControl = L.control({ position: "bottomright" });
+        customControl.onAdd = function (map) {
+            const div = L.DomUtil.create("div", "leaflet-control");
+            div.innerHTML = `
+                <div class="btn-group" role="group" style="background: white; padding: 5px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.65)">
+                    <button id="updateLocationBtn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-location-arrow"></i> Update Location
+                    </button>
+                    <button id="centerMapBtn" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-crosshairs"></i> Center Map
+                    </button>
+                </div>
+            `;
+            return div;
+        };
+        customControl.addTo(map);
+
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'updateLocationBtn') {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        handlePositionUpdate,
+                        handleLocationError,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 30000,
+                            maximumAge: 0
+                        }
+                    );
+                }
+            } else if (e.target && e.target.id === 'centerMapBtn') {
+                if (userMarker) {
+                    map.setView(userMarker.getLatLng(), 17);
+                }
+            }
+        });
+
+        startWatchingPosition();
+        map.on('remove', function() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
+        return map;
+    }
+    // --- END: Robust Geolocation and Map Logic ---
+
+    // Initialize map in Track Buses section
+    const busMap = document.getElementById('busMap');
+    if (busMap) {
+        initializeMap('busMap');
+    }
+
+    // Initialize dashboard map on page load
+    const dashboardMap = document.getElementById('dashboardMap');
+    if (dashboardMap) {
+        initializeMap('dashboardMap');
+    }
+
+    // Add location search UI and logic
+    // Insert after DOMContentLoaded or map initialization
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add location search box to the dashboard
+        const searchBoxHtml = `
+            <div id="locationSearchContainer" style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" id="locationSearchInput" class="form-control" placeholder="Search address or place..." style="max-width: 300px;">
+                <button id="locationSearchBtn" class="btn btn-primary">Search</button>
+                <span id="locationSearchLoading" style="display:none;">🔄</span>
+            </div>
+        `;
+        const dashboardMap = document.getElementById('dashboardMap');
+        if (dashboardMap) {
+            dashboardMap.insertAdjacentHTML('beforebegin', searchBoxHtml);
+        }
+
+        let searchMarker = null;
+        document.getElementById('locationSearchBtn')?.addEventListener('click', function() {
+            const query = document.getElementById('locationSearchInput').value.trim();
+            if (!query) return;
+            document.getElementById('locationSearchLoading').style.display = '';
+            fetch(`/api/geocode?address=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('locationSearchLoading').style.display = 'none';
+                    if (data.success && data.lat && data.lng) {
+                        if (typeof map !== 'undefined') {
+                            map.setView([data.lat, data.lng], 16);
+                            if (searchMarker) {
+                                searchMarker.setLatLng([data.lat, data.lng]);
+                            } else {
+                                searchMarker = L.marker([data.lat, data.lng], {icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]})}).addTo(map);
+                            }
+                            searchMarker.bindPopup(data.formatted_address || query).openPopup();
+                        }
+                    } else {
+                        alert('Location not found. Please try another address.');
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('locationSearchLoading').style.display = 'none';
+                    alert('Error searching for location.');
+                });
+        });
+    });
+
+    // Route Requests functionality
+    const routeRequestForm = document.getElementById("routeRequestForm");
+    if (routeRequestForm && !routeRequestForm.dataset.listenerAdded) {
+        routeRequestForm.addEventListener("submit", submitRouteRequest);
+        routeRequestForm.dataset.listenerAdded = true;
+    }
+
+    // Function to submit route request
+    async function submitRouteRequest(e) {
+        e.preventDefault();
+        
+        const requestType = document.getElementById('requestType').value;
+        const routeNumber = document.getElementById('routeNumber').value;
+        const requestDetails = document.getElementById('requestDetails').value;
+        const reason = document.getElementById('reason').value;
+        
+        // Validate form
+        if (!requestDetails || !reason) {
+            showAlert('Please fill in all required fields', 'danger');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/submit_route_request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                },
+                body: JSON.stringify({
+                    request_type: requestType,
+                    route_number: routeNumber,
+                    request_details: requestDetails,
+                    reason: reason
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Show success message
+                showAlert('Your route request has been submitted successfully', 'success');
+                
+                // Clear form
+                document.getElementById('requestDetails').value = '';
+                document.getElementById('reason').value = '';
+                
+                // Add to request history
+                const requestHistory = document.getElementById('requestHistory');
+                const newRow = document.createElement('tr');
+                const today = new Date();
+                const formattedDate = today.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+                
+                newRow.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${requestType.charAt(0).toUpperCase() + requestType.slice(1)}</td>
+                    <td>${routeNumber ? `Route #${routeNumber}` : 'New Route'}</td>
+                    <td><span class="badge bg-warning">Pending</span></td>
+                `;
+                
+                // Replace "Sample data" placeholder if it exists
+                const firstRow = requestHistory.querySelector('tr');
+                if (firstRow && firstRow.textContent.includes('Sample data')) {
+                    requestHistory.innerHTML = '';
+                }
+                
+                requestHistory.prepend(newRow);
+            } else {
+                showAlert(data.message || 'Failed to submit request', 'danger');
+            }
+        } catch (error) {
+            showAlert('An error occurred while submitting your request', 'danger');
+            console.error('Error:', error);
+        }
+    }
+    
+    // Helper function to show alerts
+    function showAlert(message, type) {
+        const alertContainer = document.createElement('div');
+        alertContainer.className = `alert alert-${type} alert-dismissible fade show`;
+        alertContainer.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const mainContainer = document.querySelector('.container-fluid');
+        mainContainer.insertBefore(alertContainer, mainContainer.firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alertContainer.classList.remove('show');
+            setTimeout(() => alertContainer.remove(), 300);
+        }, 5000);
+    }
+
+    // WebSocket functionality for real-time notifications
+    const socket = io();
+    socket.on('new_notification', function(data) {
+        const notificationHtml = `
+            <div class="notification-item p-2 mb-2 bg-light rounded">
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-${data.priority === 'urgent' ? 'exclamation-circle' : data.priority === 'important' ? 'exclamation-triangle' : 'info-circle'} text-${data.priority === 'urgent' ? 'danger' : data.priority === 'important' ? 'warning' : 'info'}"></i>
+                    </div>
+                    <div class="ms-2">
+                        <div class="fw-bold">${data.message}</div>
+                        <div class="text-muted smaller">${data.timestamp}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const lists = document.querySelectorAll('.notification-list');
+        lists.forEach(list => {
+            if (list.firstChild.textContent === 'No notifications') {
+                list.innerHTML = '';
+            }
+            list.insertAdjacentHTML('afterbegin', notificationHtml);
+        });
+    });
+
+    // Expand Map View
+    const expandMapViewButton = document.getElementById('expandMapView');
+    if (expandMapViewButton) {
+      expandMapViewButton.addEventListener('click', function() {
+        const dashboardMapElement = document.getElementById('dashboardMap');
+        if (dashboardMapElement) {
+          // Toggle between compact and expanded view
+          if (dashboardMapElement.style.height === '300px') {
+            dashboardMapElement.style.height = '600px';
+            this.textContent = 'Compact View';
+          } else {
+            dashboardMapElement.style.height = '300px';
+            this.textContent = 'Expand View';
+          }
+        }
+      });
+    }
+
+    // Add Geoapify search functionality
+    document.getElementById('searchLocation')?.addEventListener('click', function() {
+        const searchText = document.getElementById('locationSearch').value;
+        if (!searchText) return;
+
+        const encodedText = encodeURIComponent(searchText);
+        fetch(`https://api.geoapify.com/v1/geocode/search?text=${encodedText}&apiKey=be1b0b07c3d9416a84d7b23add8f5892`, {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.features && result.features.length > 0) {
+                const location = result.features[0];
+                const coordinates = location.geometry.coordinates;
+                // Update map view to searched location
+                if (map) {
+                    map.setView([coordinates[1], coordinates[0]], 15);
+                    L.marker([coordinates[1], coordinates[0]]).addTo(map)
+                        .bindPopup(location.properties.formatted)
+                        .openPopup();
+                }
+            }
+        })
+        .catch(error => console.log('error', error));
+    });
+
+    // Add driver location marker tracking
+    let driverMarkers = {};
+
+    // Update driver marker logic for online/offline
+    function updateDriverMarker(driverData) {
+        let lat = driverData.lat !== undefined ? driverData.lat : driverData.current_lat;
+        let lng = driverData.lng !== undefined ? driverData.lng : driverData.current_lng;
+        const driverId = driverData.driver_id || (driverData.driver && driverData.driver.id);
+        const driverName = driverData.driver_name || (driverData.driver && driverData.driver.username);
+        lat = parseFloat(lat);
+        lng = parseFloat(lng);
+        if (isNaN(lat) || isNaN(lng)) {
+            console.warn('Driver location missing or invalid lat/lng:', driverData);
+            return;
+        }
+        if (lat === 0 && lng === 0) {
+            console.warn('Driver location is (0,0) which is likely invalid:', driverData);
+        }
+        if (driverMarkers[driverId] && driverMarkers[driverId].getLatLng().lat === lat && driverMarkers[driverId].getLatLng().lng === lng) {
+            console.warn('Driver marker location not changing:', {driverId, lat, lng});
+        }
+        let markerIcon = L.divIcon({
+            className: 'driver-marker',
+            html: '<i class="fas fa-bus" style="color: #28a745;"></i>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+        if (driverMarkers[driverId]) {
+            driverMarkers[driverId].setLatLng([lat, lng]);
+            driverMarkers[driverId].setIcon(markerIcon);
+        } else {
+            driverMarkers[driverId] = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+        }
+        let popupContent = `Driver: ${driverName}<br><span style='color: #28a745;'>Live</span>`;
+        driverMarkers[driverId].bindPopup(popupContent);
+        // Always center the map on the driver's marker for debugging
+        map.setView([lat, lng], 16);
+        console.log('Student dashboard updated driver marker:', {driverId, driverName, lat, lng});
+    }
+
+    // Listen for driver location updates
+    socket.on('driver_location_update', function(data) {
+        if (data.lat !== undefined || data.lng !== undefined) { // Check for undefined explicitly
+            updateDriverMarker(data);
+        }
+    });
+
+    // Clean up markers when leaving page
+    window.addEventListener('beforeunload', function() {
+        Object.values(driverMarkers).forEach(marker => {
+            map.removeLayer(marker);
+        });
+    });
+});
+</script>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-section {
+    display: none;
+}
+
+.dashboard-section.active {
+    display: block;
+}
+
+.notification-item {
+    transition: all 0.2s;
+}
+
+.notification-item:hover {
+    background-color: #e9ecef !important;
+}
+
+.smaller {
+    font-size: 0.75rem;
+}
+
+.route-details {
+    transition: all 0.3s;
+}
+
+.map-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.bus-info-window {
+    padding: 10px;
+    max-width: 200px;
+}
+
+.bus-info-window h5 {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.bus-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-ontime {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-delayed {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+#dashboardMap, #busMap {
+    height: 400px;
+    width: 100%;
+    border-radius: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Add Leaflet specific styles */
+.user-location-dot-container {
+    position: relative;
+    width: 20px;
+    height: 20px;
+}
+
+.user-location-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background-color: #4A90E2;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.user-location-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background-color: rgba(74, 144, 226, 0.3);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 0;
+    }
+}
+
+.leaflet-control-locate {
+    margin-top: 10px;
+}
+
+.leaflet-control-locate button {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.bus-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bus-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #333;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.bus-icon.delayed {
+    background-color: #fff3cd;
+}
+
+.bus-icon.on-time {
+    background-color: #d4edda;
+}
+
+.driver-marker {
+    background: white;
+    border-radius: 50%;
+    padding: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.driver-marker i {
+    color: #3498db;
+    font-size: 20px;
+}
+</style>
+{% endblock %}
+{% endblock content %}

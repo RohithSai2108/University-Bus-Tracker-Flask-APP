@@ -1,0 +1,194 @@
+<!-- templates/login.html -->
+{% extends "base.html" %} {% block title %}Login | University Bus Tracker{%
+endblock %} {% block content %}
+<div class="login-container">
+  <div class="card">
+    <div class="card-body p-4">
+      <h2 class="text-center mb-4">Login</h2>
+
+      <!-- Add flash messages to display errors -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+        {% if form and form.csrf_token %}
+          {{ form.csrf_token }}
+        {% endif %}
+        <div class="mb-4">
+          <label class="form-label">Select User Type</label>
+          <div class="row g-3">
+            <div class="col-4">
+              <div
+                class="card role-card text-center p-3"
+                onclick="selectRole('student')"
+              >
+                <div class="feature-icon mx-auto">
+                  <i class="fas fa-user-graduate"></i>
+                </div>
+                <div class="mt-2">Student</div>
+                <input
+                  type="radio"
+                  name="role"
+                  value="student"
+                  class="form-check-input visually-hidden role-radio"
+                  id="student"
+                />
+              </div>
+            </div>
+            <div class="col-4">
+              <div
+                class="card role-card text-center p-3"
+                onclick="selectRole('driver')"
+              >
+                <div class="feature-icon mx-auto">
+                  <i class="fas fa-id-card"></i>
+                </div>
+                <div class="mt-2">Driver</div>
+                <input
+                  type="radio"
+                  name="role"
+                  value="driver"
+                  class="form-check-input visually-hidden role-radio"
+                  id="driver"
+                />
+              </div>
+            </div>
+            <div class="col-4">
+              <div
+                class="card role-card text-center p-3"
+                onclick="selectRole('admin')"
+              >
+                <div class="feature-icon mx-auto">
+                  <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="mt-2">Admin</div>
+                <input
+                  type="radio"
+                  name="role"
+                  value="admin"
+                  class="form-check-input visually-hidden role-radio"
+                  id="admin"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-user"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              name="username"
+              required
+            />
+          </div>
+        </div>
+        <div class="mb-4">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              required
+            />
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              id="togglePassword"
+            >
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary btn-lg">Login</button>
+        </div>
+      </form>
+      <div class="text-center mt-4">
+        <p>
+          Don't have an account?
+          <a href="{{ url_for('register') }}">Register here</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% block extra_js %}
+<script>
+  // Role selection function
+  function selectRole(role) {
+    document
+      .querySelectorAll(".role-card")
+      .forEach((card) => card.classList.remove("active"));
+    document.querySelector(`#${role}`).parentElement.classList.add("active");
+    document.getElementById(role).checked = true;
+  }
+
+  // Simplified toggle function with debugging
+  function togglePasswordVisibility() {
+    console.log("Toggle button clicked"); // Debug log
+    var passwordInput = document.getElementById("password");
+    var toggleButton = document.getElementById("togglePassword");
+    var icon = toggleButton.querySelector("i");
+
+    if (passwordInput && icon) {
+      console.log("Elements found, current type:", passwordInput.type); // Debug log
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+        console.log("Password shown");
+      } else {
+        passwordInput.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+        console.log("Password hidden");
+      }
+    } else {
+      console.error("Password input or icon not found");
+    }
+  }
+
+  // Attach event listener after DOM is loaded
+  window.onload = function () {
+    console.log("DOM loaded, attaching event listener"); // Debug log
+    var toggleButton = document.getElementById("togglePassword");
+    if (toggleButton) {
+      toggleButton.addEventListener("click", togglePasswordVisibility);
+    } else {
+      console.error("Toggle button not found");
+    }
+  };
+
+  // Add form validation
+  document.getElementById("loginForm").addEventListener("submit", function (e) {
+    // Check if a role is selected
+    const roleSelected = document.querySelector('input[name="role"]:checked');
+    if (!roleSelected) {
+      e.preventDefault();
+      alert("Please select a user type (Student, Driver or Admin)");
+      return false;
+    }
+    return true;
+  });
+</script>
+{% endblock %} {% endblock %}

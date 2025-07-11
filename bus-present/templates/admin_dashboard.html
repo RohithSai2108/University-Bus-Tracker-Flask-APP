@@ -1,0 +1,1940 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard | University Bus Tracker{% endblock %}
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<div class="container-fluid">
+    <!-- Alert container for messages -->
+    <div id="alertContainer"></div>
+    
+    <div class="row">
+        <div class="col-lg-2 dashboard-sidebar p-4">
+            <h5 class="mb-4">Admin Dashboard</h5>
+            <div class="nav flex-column">
+                <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="#" class="nav-link" data-section="fleet_management"><i class="fas fa-bus"></i> Fleet Management</a>
+                <a href="#" class="nav-link" data-section="route_management"><i class="fas fa-route"></i> Route Management</a>
+                <a href="#" class="nav-link" data-section="user_management"><i class="fas fa-users"></i> User Management</a>
+                <a href="#" class="nav-link" data-section="schedules"><i class="fas fa-calendar-alt"></i> Schedules</a>
+                <a href="#" class="nav-link" data-section="reports"><i class="fas fa-chart-bar"></i> Reports</a>
+                <a href="#" class="nav-link" data-section="notifications"><i class="fas fa-bell"></i> Notifications</a>
+                <a href="#" class="nav-link" data-section="system_settings"><i class="fas fa-cog"></i> System Settings</a>
+            </div>
+        </div>
+        <div class="col-lg-10 p-4">
+            <h2 class="mb-4">Welcome, {{ current_user.username }}!</h2>
+
+            <!-- Dashboard Section -->
+            <div class="dashboard-section active" id="dashboard">
+                <div class="row">
+                    <!-- Real-time Map Overview -->
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Real-time Fleet Overview</h5>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" id="centerMapBtn">
+                                        <i class="fas fa-crosshairs"></i> Center Map
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="refreshMapBtn">
+                                        <i class="fas fa-sync"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="adminMap" style="height: 400px; width: 100%; border: 1px solid #ddd; border-radius: 4px; position: relative; z-index: 1;"></div>
+                                <div class="mt-3">
+                                    <div class="d-flex gap-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2 rounded-circle" style="width: 12px; height: 12px; background-color: #28a745; border: 1px solid #1e7e34;"></div>
+                                            <small>On Time</small>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2 rounded-circle bg-warning" style="width: 10px; height: 10px;"></div>
+                                            <small>Delayed</small>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2 rounded-circle bg-primary" style="width: 10px; height: 10px;"></div>
+                                            <small>Drivers</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white h-100">
+                                <div class="card-body">
+                                    <h6>Active Buses</h6>
+                                    <h2 id="activeBuses">{{ active_buses|length }}</h2>
+                                </div>
+                                <div class="card-footer bg-transparent border-0">
+                                    <small id="inactiveBuses">{{ inactive_buses|length }} inactive</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white h-100">
+                                <div class="card-body">
+                                    <h6>Active Routes</h6>
+                                    <h2 id="activeRoutes">{{ active_routes|length }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white h-100">
+                                <div class="card-body">
+                                    <h6>Total Users</h6>
+                                    <h2 id="totalUsers">{{ users|length }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white h-100">
+                                <div class="card-body">
+                                    <h6>Pending Issues</h6>
+                                    <h2 id="pendingIssues">{{ pending_issues|length }}</h2>
+                                </div>
+                                <div class="card-footer bg-transparent border-0">
+                                    <small id="urgentIssues">{{ urgent_issues|length }} urgent</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-lg-8">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5>Fleet Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Bus</th>
+                                                    <th>Driver</th>
+                                                    <th>Route</th>
+                                                    <th>Status</th>
+                                                    <th>Last Updated</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="fleetTable">
+                                                {% for bus in buses %}
+                                                <tr data-bus-id="{{ bus.id }}">
+                                                    <td>{{ bus.name }}</td>
+                                                    <td>{{ bus.driver.username if bus.driver else '--' }}</td>
+                                                    <td>
+                                                        {% set current_schedule = bus.schedules|selectattr('status', 'equalto', 'in-progress')|first %}
+                                                        {{ current_schedule.route.name if current_schedule and current_schedule.route else '--' }}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if bus.status == 'active' else 'danger' }}">
+                                                            {{ bus.status|capitalize }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ bus.last_updated.strftime('%I:%M %p') if bus.last_updated else 'N/A' }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary me-1 track-bus" data-bus-id="{{ bus.id }}">
+                                                            <i class="fas fa-map-marker-alt"></i> Track
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary assign-driver" data-bus-id="{{ bus.id }}">
+                                                            <i class="fas fa-user-plus"></i> Assign
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5>Recent Issues</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Reported By</th>
+                                                    <th>Type</th>
+                                                    <th>Status</th>
+                                                    <th>Time</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="issuesTable">
+                                                {% for issue in issues %}
+                                                <tr data-issue-id="{{ issue.id }}">
+                                                    <td>#{{ issue.id }}</td>
+                                                    <td>{{ issue.reported_by_user.username }}</td>
+                                                    <td>{{ issue.type|capitalize }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if issue.status == 'Resolved' else 'warning' }}">
+                                                            {{ issue.status }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ issue.reported_at.strftime('%b %d, %I:%M %p') }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-primary resolve-issue" data-issue-id="{{ issue.id }}" {% if issue.status == 'Resolved' %}disabled{% endif %}>
+                                                            <i class="fas fa-check"></i> Resolve
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5>Recent Activity</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <ul class="list-group list-group-flush" id="activityLog">
+                                        {% for log in recent_activity %}
+                                        <li class="list-group-item">
+                                            <div class="d-flex">
+                                                <div class="me-3">
+                                                    <i class="fas fa-{{ 'user-plus' if 'Added' in log.action else 'route' if 'route' in log.action else 'bell' if 'notification' in log.action else 'wrench' }} text-{{ 'success' if 'Added' in log.action else 'primary' if 'route' in log.action else 'info' if 'notification' in log.action else 'warning' }}"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="mb-0">{{ log.action }}</p>
+                                                    <small class="text-muted">{{ log.timestamp.strftime('%I:%M %p') }}</small>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5>Route Change Requests</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Student</th>
+                                                    <th>Type</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="routeRequestsTable">
+                                                {% for request in route_requests %}
+                                                <tr data-request-id="{{ request.id }}">
+                                                    <td>{{ request.created_at.strftime('%b %d, %Y') }}</td>
+                                                    <td>{{ request.student.username }}</td>
+                                                    <td>{{ request.request_type|capitalize }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if request.status == 'Approved' else 'danger' if request.status == 'Rejected' else 'warning' }}">
+                                                            {{ request.status }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-sm btn-success approve-request" data-request-id="{{ request.id }}" {% if request.status != 'Pending' %}disabled{% endif %} title="Approve">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-danger reject-request" data-request-id="{{ request.id }}" {% if request.status != 'Pending' %}disabled{% endif %} title="Reject">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fleet Management Section -->
+            <div class="dashboard-section" id="fleet_management">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Fleet Management</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="addBus" data-bs-toggle="modal" data-bs-target="#addBusModal">
+                            <i class="fas fa-plus"></i> Add Bus
+                        </button>
+                        <button class="btn btn-outline-primary" id="exportFleet">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Fleet Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="statusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Driver</label>
+                                <select class="form-select" id="driverFilter">
+                                    <option value="">All Drivers</option>
+                                    {% for user in users %}
+                                        {% if user.role == 'driver' %}
+                                            <option value="{{ user.id }}">{{ user.username }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Route</label>
+                                <select class="form-select" id="routeFilter">
+                                    <option value="">All Routes</option>
+                                    {% for route in routes %}
+                                        <option value="{{ route.id }}">{{ route.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Search</label>
+                                <input type="text" class="form-control" id="busSearch" placeholder="Search buses...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="fleetTable">
+                                <thead>
+                                    <tr>
+                                        <th>Bus ID</th>
+                                        <th>Bus Number</th>
+                                        <th>Driver</th>
+                                        <th>Current Route</th>
+                                        <th>Status</th>
+                                        <th>Last Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for bus in buses %}
+                                    <tr data-bus-id="{{ bus.id }}">
+                                        <td>{{ bus.id }}</td>
+                                        <td>{{ bus.name }}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm driver-select" data-bus-id="{{ bus.id }}">
+                                                <option value="">-- Select Driver --</option>
+                                                {% for user in users %}
+                                                    {% if user.role == 'driver' %}
+                                                        <option value="{{ user.id }}" {% if bus.driver_id == user.id %}selected{% endif %}>
+                                                            {{ user.username }}
+                                                        </option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm route-select" data-bus-id="{{ bus.id }}">
+                                                <option value="">-- Select Route --</option>
+                                                {% for route in routes %}
+                                                    <option value="{{ route.id }}" {% if bus.current_route_id == route.id %}selected{% endif %}>
+                                                        {{ route.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm status-select" data-bus-id="{{ bus.id }}">
+                                                <option value="active" {% if bus.status == 'active' %}selected{% endif %}>Active</option>
+                                                <option value="maintenance" {% if bus.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                                                <option value="inactive" {% if bus.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                            </select>
+                                        </td>
+                                        <td>{{ bus.last_updated.strftime('%Y-%m-%d %H:%M') if bus.last_updated else 'N/A' }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary track-bus" data-bus-id="{{ bus.id }}">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info view-details" data-bus-id="{{ bus.id }}">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-bus" data-bus-id="{{ bus.id }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Management Section -->
+            <div class="dashboard-section" id="route_management">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Route Management</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="addRoute" data-bs-toggle="modal" data-bs-target="#addRouteModal">
+                            <i class="fas fa-plus"></i> Add Route
+                        </button>
+                        <button class="btn btn-outline-primary" id="exportRoutes">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Route Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="routeStatusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Search</label>
+                                <input type="text" class="form-control" id="routeSearch" placeholder="Search routes...">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sort By</label>
+                                <select class="form-select" id="routeSort">
+                                    <option value="name">Name</option>
+                                    <option value="stops">Number of Stops</option>
+                                    <option value="frequency">Frequency</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="routeTable">
+                                <thead>
+                                    <tr>
+                                        <th>Route ID</th>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Stops</th>
+                                        <th>Frequency</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for route in routes %}
+                                    <tr data-route-id="{{ route.id }}">
+                                        <td>{{ route.id }}</td>
+                                        <td>{{ route.name }}</td>
+                                        <td>{{ route.description or 'N/A' }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info view-stops" data-route-id="{{ route.id }}">
+                                                View Stops ({{ route.stops|length }})
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm frequency-select" data-route-id="{{ route.id }}">
+                                                <option value="15" {% if route.frequency == 15 %}selected{% endif %}>Every 15 min</option>
+                                                <option value="30" {% if route.frequency == 30 %}selected{% endif %}>Every 30 min</option>
+                                                <option value="60" {% if route.frequency == 60 %}selected{% endif %}>Every 60 min</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm route-status-select" data-route-id="{{ route.id }}">
+                                                <option value="active" {% if route.status == 'active' %}selected{% endif %}>Active</option>
+                                                <option value="inactive" {% if route.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary edit-route" data-route-id="{{ route.id }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info view-map" data-route-id="{{ route.id }}">
+                                                    <i class="fas fa-map"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-route" data-route-id="{{ route.id }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Section -->
+            <div class="dashboard-section" id="user_management">
+                <h3>User Management</h3>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="btn-group" role="group" aria-label="User role filters">
+                            <button type="button" class="btn btn-outline-primary active" data-role="all">All Users</button>
+                            <button type="button" class="btn btn-outline-primary" data-role="driver">Drivers</button>
+                            <button type="button" class="btn btn-outline-primary" data-role="student">Students</button>
+                            <button type="button" class="btn btn-outline-primary" data-role="admin">Admins</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-primary" id="addUser">
+                            <i class="fas fa-user-plus"></i> Add User
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTable">
+                                    {% for user in users|sort(attribute='id') %}
+                                    <tr data-user-id="{{ user.id }}" data-role="{{ user.role }}">
+                                        <td>{{ user.id }}</td>
+                                        <td>{{ user.username }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'primary' if user.role == 'admin' else 'success' if user.role == 'driver' else 'info' }}">
+                                                {{ user.role|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">Active</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary edit-user" data-user-id="{{ user.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-user" data-user-id="{{ user.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedules Section -->
+            <div class="dashboard-section" id="schedules">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Schedules</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="addSchedule" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                            <i class="fas fa-plus"></i> Add Schedule
+                        </button>
+                        <button class="btn btn-outline-primary" id="exportSchedules">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Schedule Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Date Range</label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" id="scheduleStartDate">
+                                    <span class="input-group-text">to</span>
+                                    <input type="date" class="form-control" id="scheduleEndDate">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Bus</label>
+                                <select class="form-select" id="scheduleBusFilter">
+                                    <option value="">All Buses</option>
+                                    {% for bus in buses %}
+                                        <option value="{{ bus.id }}">{{ bus.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Route</label>
+                                <select class="form-select" id="scheduleRouteFilter">
+                                    <option value="">All Routes</option>
+                                    {% for route in routes %}
+                                        <option value="{{ route.id }}">{{ route.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="scheduleStatusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="scheduleTable">
+                                <thead>
+                                    <tr>
+                                        <th>Schedule ID</th>
+                                        <th>Bus</th>
+                                        <th>Route</th>
+                                        <th>Date</th>
+                                        <th>Departure</th>
+                                        <th>Arrival</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in schedules %}
+                                    <tr data-schedule-id="{{ schedule.id }}">
+                                        <td>{{ schedule.id }}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm schedule-bus-select" data-schedule-id="{{ schedule.id }}">
+                                                <option value="">-- Select Bus --</option>
+                                                {% for bus in buses %}
+                                                    <option value="{{ bus.id }}" {% if schedule.bus_id == bus.id %}selected{% endif %}>
+                                                        {{ bus.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm schedule-route-select" data-schedule-id="{{ schedule.id }}">
+                                                <option value="">-- Select Route --</option>
+                                                {% for route in routes %}
+                                                    <option value="{{ route.id }}" {% if schedule.route_id == route.id %}selected{% endif %}>
+                                                        {{ route.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>{{ schedule.departure_time.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ schedule.departure_time.strftime('%I:%M %p') }}</td>
+                                        <td>{{ schedule.arrival_time.strftime('%I:%M %p') }}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm schedule-status-select" data-schedule-id="{{ schedule.id }}">
+                                                <option value="scheduled" {% if schedule.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                                                <option value="in-progress" {% if schedule.status == 'in-progress' %}selected{% endif %}>In Progress</option>
+                                                <option value="completed" {% if schedule.status == 'completed' %}selected{% endif %}>Completed</option>
+                                                <option value="cancelled" {% if schedule.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary edit-schedule" data-schedule-id="{{ schedule.id }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info view-details" data-schedule-id="{{ schedule.id }}">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-schedule" data-schedule-id="{{ schedule.id }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="dashboard-section" id="reports">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Reports</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="generateReport">
+                            <i class="fas fa-file-alt"></i> Generate Report
+                        </button>
+                        <button class="btn btn-outline-primary" id="exportReport">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form id="reportForm">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Report Type</label>
+                                    <select class="form-select" id="reportType" required>
+                                        <option value="">Select Report Type</option>
+                                        <option value="fleet_utilization">Fleet Utilization</option>
+                                        <option value="route_performance">Route Performance</option>
+                                        <option value="driver_performance">Driver Performance</option>
+                                        <option value="maintenance">Maintenance Reports</option>
+                                        <option value="passenger">Passenger Statistics</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Date Range</label>
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" id="reportStartDate" required>
+                                        <span class="input-group-text">to</span>
+                                        <input type="date" class="form-control" id="reportEndDate" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Bus</label>
+                                    <select class="form-select" id="reportBusFilter">
+                                        <option value="">All Buses</option>
+                                        {% for bus in buses %}
+                                            <option value="{{ bus.id }}">{{ bus.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Route</label>
+                                    <select class="form-select" id="reportRouteFilter">
+                                        <option value="">All Routes</option>
+                                        {% for route in routes %}
+                                            <option value="{{ route.id }}">{{ route.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div id="reportOutput">
+                            <!-- Report content will be loaded here -->
+                            <div class="text-center text-muted">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <p>Select report type and filters to generate a report</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Section -->
+            <div class="dashboard-section" id="notifications">
+                <h3>Notifications</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <form id="sendNotificationForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label for="notificationType" class="form-label">Send To</label>
+                                <select class="form-select mb-3" id="notificationType" name="notificationType" required>
+                                    <option value="">Select Recipient Type</option>
+                                    <option value="all">All Users</option>
+                                    <option value="drivers">All Drivers</option>
+                                    <option value="students">All Students</option>
+                                    <option value="specific">Specific Users</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3" id="specificUsersSection" style="display: none;">
+                                <label for="specificUsers" class="form-label">Select Recipients</label>
+                                <select class="form-select" id="specificUsers" name="specificUsers" multiple>
+                                    <optgroup label="Drivers">
+                                        {% for user in users %}
+                                            {% if user.role == 'driver' %}
+                                                <option value="{{ user.id }}">{{ user.username }} (Driver)</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </optgroup>
+                                    <optgroup label="Students">
+                                        {% for user in users %}
+                                            {% if user.role == 'student' %}
+                                                <option value="{{ user.id }}">{{ user.username }} (Student)</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </optgroup>
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple users</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="notificationMessage" class="form-label">Message</label>
+                                <textarea class="form-control" id="notificationMessage" name="message" rows="3" placeholder="Enter notification message..." required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="notificationPriority" class="form-label">Priority</label>
+                                <select class="form-select" id="notificationPriority" name="priority" required>
+                                    <option value="normal">Normal</option>
+                                    <option value="important">Important</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Send Notification</button>
+                        </form>
+
+                        <div id="notificationList" class="mt-4">
+                            <h5>Recent Notifications</h5>
+                            <div class="list-group">
+                                {% for notification in notifications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ notification.message }}</h6>
+                                        <small class="text-muted">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</small>
+                                    </div>
+                                    <p class="mb-1">Sent to: {{ notification.recipient_type }}</p>
+                                    <small class="text-{{ 'danger' if notification.priority == 'urgent' else 'warning' if notification.priority == 'important' else 'info' }}">
+                                        {{ notification.priority|capitalize }}
+                                    </small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div class="dashboard-section" id="system_settings">
+                <h3>System Status</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span>Server Status</span>
+                                <span class="badge bg-success" id="serverStatus">Online</span>
+                            </div>
+                            <div class="progress"><div class="progress-bar bg-success" role="progressbar" style="width: 92%" id="serverLoad">92%</div></div>
+                            <small class="text-muted">Server load is normal</small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span>Active Devices</span>
+                                <span class="badge bg-success" id="activeDevices">{{ buses|selectattr('current_lat', 'ne', None)|list|length }}</span>
+                            </div>
+                            <div class="progress"><div class="progress-bar bg-success" role="progressbar" style="width: 100%">100%</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="">Select Role</option>
+                            <option value="student">Student</option>
+                            <option value="driver">Driver</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveUser">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Delete User Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the user <span id="deleteUserName" class="fw-bold"></span>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteUser">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden logout form -->
+<form id="logout-form" action="{{ url_for('logout') }}" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<style>
+    .dashboard-section {
+        display: none;
+    }
+
+    .dashboard-section.active {
+        display: block;
+    }
+
+    .nav-link {
+        cursor: pointer;
+        padding: 0.75rem 1rem;
+        color: #6c757d;
+        transition: all 0.3s;
+    }
+
+    .nav-link:hover {
+        background-color: rgba(0,0,0,0.05);
+    }
+
+    .nav-link.active {
+        color: #fff !important;
+        background-color: #0d6efd !important;
+        border-radius: 0.25rem;
+    }
+
+    .bus-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bus-icon {
+        font-size: 24px;
+        background-color: white;
+        border-radius: 50%;
+        padding: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .bus-icon.delayed {
+        background-color: #fff3cd;
+    }
+
+    .bus-icon.on-time {
+        background-color: #d4edda;
+    }
+
+    .bus-info-window {
+        padding: 10px;
+        max-width: 200px;
+    }
+
+    .bus-info-window h5 {
+        margin-bottom: 8px;
+        color: #333;
+    }
+
+    .leaflet-control-attribution {
+        font-size: 8px !important;
+    }
+
+    .driver-marker {
+        background: white;
+        border-radius: 50%;
+        padding: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .driver-marker i {
+        color: #3498db;
+        font-size: 20px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.dashboard-section');
+    const navLinks = document.querySelectorAll('.dashboard-sidebar .nav-link');
+
+    sections.forEach((section, index) => {
+        if (index === 0) {
+            section.classList.add('active');
+        } else {
+            section.classList.remove('active');
+        }
+    });
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const section = this.getAttribute('data-section');
+            if (section) {
+                e.preventDefault();
+                
+                navLinks.forEach(l => l.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+                
+                this.classList.add('active');
+                document.getElementById(section)?.classList.add('active');
+            }
+        });
+    });
+
+    // User role filtering functionality
+    const roleFilterButtons = document.querySelectorAll('[data-role]');
+    const userRows = document.querySelectorAll('#userTable tr[data-role]');
+
+    roleFilterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const selectedRole = this.getAttribute('data-role');
+            
+            // Update active state of filter buttons
+            roleFilterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filter the table rows
+            userRows.forEach(row => {
+                const userRole = row.getAttribute('data-role');
+                if (selectedRole === 'all' || userRole === selectedRole) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Add User Modal Functionality
+    const addUserBtn = document.getElementById('addUser');
+    const saveUserBtn = document.getElementById('saveUser');
+    const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+    const addUserForm = document.getElementById('addUserForm');
+
+    // Show the Add User modal when the button is clicked
+    addUserBtn?.addEventListener('click', function() {
+        addUserForm.reset(); // Reset the form
+        addUserModal.show();
+    });
+
+    // Save User when the save button is clicked
+    saveUserBtn?.addEventListener('click', async function() {
+        // Get form data
+        const formData = new FormData(addUserForm);
+        const username = formData.get('username');
+        const email = formData.get('email');
+        const password = formData.get('password');
+        const role = formData.get('role');
+
+        // Validate form data
+        if (!username || !email || !password || !role) {
+            showAlert('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        try {
+            // Send data to the server
+            const response = await fetch('/api/users/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    password,
+                    role
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Show success message
+                showAlert(data.message, 'success');
+                
+                // Close the modal
+                addUserModal.hide();
+                
+                // Add the new user to the table
+                addUserToTable(data.user);
+                
+                // Reset the form
+                addUserForm.reset();
+            } else {
+                // Show error message
+                showAlert(data.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('An error occurred while adding the user', 'danger');
+            console.error('Error:', error);
+        }
+    });
+
+    // Function to add a new user to the table
+    function addUserToTable(user) {
+        const userTable = document.getElementById('userTable');
+        
+        // Create a new row
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-user-id', user.id);
+        newRow.setAttribute('data-role', user.role);
+        
+        // Define badge color based on role
+        let badgeColor = 'info';
+        if (user.role === 'admin') badgeColor = 'primary';
+        else if (user.role === 'driver') badgeColor = 'success';
+        
+        // Set row HTML
+        newRow.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.username}</td>
+            <td>${user.email}</td>
+            <td>
+                <span class="badge bg-${badgeColor}">
+                    ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                </span>
+            </td>
+            <td>
+                <span class="badge bg-success">Active</span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary edit-user" data-user-id="${user.id}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-user" data-user-id="${user.id}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        // Add the row to the table
+        userTable.appendChild(newRow);
+        
+        // Add event listener to the delete button
+        const deleteBtn = newRow.querySelector('.delete-user');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', showDeleteUserModal);
+        }
+    }
+
+    // Delete User Modal Functionality
+    const deleteUserModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    const confirmDeleteUserBtn = document.getElementById('confirmDeleteUser');
+    let userToDelete = null;
+
+    // Show the Delete User confirmation modal
+    function showDeleteUserModal() {
+        const userId = this.getAttribute('data-user-id');
+        const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+        const username = userRow.querySelector('td:nth-child(2)').textContent;
+        
+        document.getElementById('deleteUserName').textContent = username;
+        userToDelete = { id: userId, username };
+        
+        deleteUserModal.show();
+    }
+
+    // Add click event listeners to all delete user buttons
+    document.querySelectorAll('.delete-user').forEach(button => {
+        button.addEventListener('click', showDeleteUserModal);
+    });
+
+    // Delete User when confirmed
+    confirmDeleteUserBtn?.addEventListener('click', async function() {
+        if (!userToDelete) return;
+        
+        try {
+            const response = await fetch('/api/users/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                body: JSON.stringify({
+                    user_id: userToDelete.id
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Remove the user row from the table
+                const userRow = document.querySelector(`tr[data-user-id="${userToDelete.id}"]`);
+                if (userRow) {
+                    userRow.remove();
+                }
+                
+                // Show success message
+                showAlert(`User ${userToDelete.username} deleted successfully`, 'success');
+                
+                // Close the modal
+                deleteUserModal.hide();
+                
+                // Reset userToDelete
+                userToDelete = null;
+            } else {
+                throw new Error(data.message || 'Failed to delete user');
+            }
+        } catch (error) {
+            showAlert(error.message || 'An error occurred while deleting the user', 'danger');
+            console.error('Error:', error);
+        }
+    });
+
+    // Function to show alerts
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        alertContainer.appendChild(alert);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alert.classList.remove('show');
+            setTimeout(() => alert.remove(), 150);
+        }, 5000);
+    }
+
+    if (window.location.hash) {
+        const sectionId = window.location.hash.substring(1);
+        const targetLink = document.querySelector(`[data-section="${sectionId}"]`);
+        if (targetLink) {
+            targetLink.click();
+        }
+    }
+});
+</script>
+
+<script>
+// Add this to your existing adminDashboard object
+document.addEventListener('DOMContentLoaded', function() {
+    // Notification type change handler
+    document.getElementById('notificationType')?.addEventListener('change', function() {
+        const specificUsersSection = document.getElementById('specificUsersSection');
+        specificUsersSection.style.display = this.value === 'specific' ? 'block' : 'none';
+    });
+
+    // Notification form submit handler
+    document.getElementById('sendNotificationForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const notificationType = formData.get('notificationType');
+        const message = formData.get('message');
+        const priority = formData.get('priority');
+        
+        let recipients = [];
+        if (notificationType === 'specific') {
+            const select = document.getElementById('specificUsers');
+            recipients = Array.from(select.selectedOptions).map(option => option.value);
+            if (recipients.length === 0) {
+                adminDashboard.showAlert('Please select at least one recipient', 'warning');
+                return;
+            }
+        }
+
+        try {
+            const response = await fetch('/api/notifications/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                },
+                body: JSON.stringify({
+                    type: notificationType,
+                    message: message,
+                    priority: priority,
+                    recipients: recipients
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                adminDashboard.showAlert('Notification sent successfully', 'success');
+                this.reset();
+                // Optionally reload the notifications list
+                location.reload();
+            } else {
+                throw new Error(data.message || 'Failed to send notification');
+            }
+        } catch (error) {
+            adminDashboard.showAlert(error.message || 'Failed to send notification', 'danger');
+        }
+    });
+});
+</script>
+
+<!-- Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Socket.IO -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let adminMap;
+    let busMarkers = {};
+    let driverMarkers = {};
+    let refreshInterval;
+    
+    // Initialize Socket.IO connection
+    const socket = io();
+
+    // Initialize map
+    function initializeMap() {
+        // Default center coordinates (Guntur)
+        const defaultLat = 16.3067;
+        const defaultLng = 80.4365;
+
+        // Check if map container exists
+        const mapContainer = document.getElementById('adminMap');
+        if (!mapContainer) {
+            console.error('Map container not found');
+            return;
+        }
+
+        try {
+            adminMap = L.map('adminMap').setView([defaultLat, defaultLng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(adminMap);
+
+            console.log('Map initialized successfully');
+            
+            // Start real-time updates
+            updateBusLocations();
+            refreshInterval = setInterval(updateBusLocations, 5000); // Update every 5 seconds
+        } catch (error) {
+            console.error('Error initializing map:', error);
+        }
+    }
+
+    // Update bus locations
+    function updateBusLocations() {
+        fetch('/api/bus_locations')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Remove markers for buses that are no longer active
+                    Object.keys(busMarkers).forEach(busId => {
+                        if (!data.buses.find(bus => bus.id === parseInt(busId))) {
+                            if (adminMap && busMarkers[busId]) {
+                                adminMap.removeLayer(busMarkers[busId]);
+                            }
+                            delete busMarkers[busId];
+                        }
+                    });
+
+                    // Update or add markers for active buses
+                    data.buses.forEach(bus => {
+                        if (bus.lat && bus.lng) {
+                            updateBusMarker(bus);
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error updating bus locations:', error);
+            });
+    }
+
+    // Update or create bus marker
+    function updateBusMarker(bus) {
+        if (!adminMap) return;
+        
+        const markerIcon = L.divIcon({
+            className: 'bus-marker',
+            html: `<div class="bus-icon ${bus.isDelayed ? 'delayed' : 'on-time'}">
+                    <i class="fas fa-bus"></i>
+                   </div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        if (busMarkers[bus.id]) {
+            busMarkers[bus.id].setLatLng([bus.lat, bus.lng]);
+        } else {
+            busMarkers[bus.id] = L.marker([bus.lat, bus.lng], { icon: markerIcon }).addTo(adminMap);
+        }
+
+        // Update popup content
+        const popupContent = `
+            <div class="bus-info-window">
+                <h5>Bus #${bus.busNumber || bus.id}</h5>
+                <p><strong>Route:</strong> ${bus.routeName || 'N/A'}</p>
+                <p><strong>Next Stop:</strong> ${bus.nextStop || 'N/A'}</p>
+                <p><strong>ETA:</strong> ${bus.eta || 'N/A'}</p>
+                <p><strong>Status:</strong> <span class="badge ${bus.isDelayed ? 'bg-warning' : 'bg-success'}">${bus.isDelayed ? 'Delayed' : 'On Time'}</span></p>
+                <p><small>Last Updated: ${new Date(bus.lastUpdated || Date.now()).toLocaleTimeString()}</small></p>
+            </div>
+        `;
+        busMarkers[bus.id].bindPopup(popupContent);
+    }
+
+    // Update driver marker logic for online/offline
+    function updateDriverMarker(driverData) {
+        if (!adminMap) return;
+        
+        const isOnline = driverData.is_online;
+        const lat = driverData.current_lat;
+        const lng = driverData.current_lng;
+        const driverId = driverData.driver.id;
+        const driverName = driverData.driver.username;
+        const lastSeen = driverData.last_seen;
+        
+        let markerIcon;
+        if (isOnline) {
+            markerIcon = L.divIcon({
+                className: 'driver-marker',
+                html: '<i class="fas fa-bus" style="color: #28a745;"></i>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+        } else {
+            markerIcon = L.divIcon({
+                className: 'driver-marker',
+                html: '<i class="fas fa-bus" style="color: #6c757d;"></i>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+        }
+        
+        if (driverMarkers[driverId]) {
+            driverMarkers[driverId].setLatLng([lat, lng]);
+            driverMarkers[driverId].setIcon(markerIcon);
+        } else {
+            driverMarkers[driverId] = L.marker([lat, lng], { icon: markerIcon }).addTo(adminMap);
+        }
+        
+        let popupContent = `Driver: ${driverName}<br>`;
+        if (isOnline) {
+            popupContent += `<span style='color: #28a745;'>Online</span>`;
+        } else {
+            popupContent += `<span style='color: #6c757d;'>Last seen at ${lastSeen ? new Date(lastSeen).toLocaleTimeString() : 'N/A'}</span>`;
+        }
+        driverMarkers[driverId].bindPopup(popupContent);
+    }
+    
+    // Add driver location tracking
+    socket.on('driver_location_update', function(data) {
+        if (data.lat && data.lng) {
+            updateDriverMarker(data);
+        }
+    });
+    
+    // Initialize map when dashboard section is active
+    function initializeMapIfNeeded() {
+        const dashboardSection = document.getElementById('dashboard');
+        if (dashboardSection && dashboardSection.classList.contains('active') && !adminMap) {
+            // Small delay to ensure DOM is ready
+            setTimeout(initializeMap, 100);
+        }
+    }
+    
+    // Listen for section changes
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function() {
+            const section = this.getAttribute('data-section');
+            if (section === 'dashboard') {
+                // Initialize map when dashboard is selected
+                setTimeout(initializeMapIfNeeded, 100);
+            }
+        });
+    });
+    
+    // Initialize map immediately if dashboard is active
+    initializeMapIfNeeded();
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+        if (adminMap) {
+            Object.values(driverMarkers).forEach(marker => {
+                adminMap.removeLayer(marker);
+            });
+        }
+    });
+
+    // Center map button handler
+    document.getElementById('centerMapBtn')?.addEventListener('click', function() {
+        if (adminMap && Object.keys(busMarkers).length > 0) {
+            const bounds = L.latLngBounds(Object.values(busMarkers).map(marker => marker.getLatLng()));
+            if (bounds.isValid()) {
+                adminMap.fitBounds(bounds);
+            }
+        }
+    });
+
+    // Refresh map button handler
+    document.getElementById('refreshMapBtn')?.addEventListener('click', updateBusLocations);
+
+    // Track bus button handler
+    document.querySelectorAll('.track-bus').forEach(button => {
+        button.addEventListener('click', function() {
+            const busId = this.dataset.busId;
+            const bus = busMarkers[busId];
+            if (bus && adminMap) {
+                adminMap.setView(bus.getLatLng(), 16);
+                bus.openPopup();
+            }
+        });
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fleet Management Functionality
+    const fleetTable = document.getElementById('fleetTable');
+    const statusFilter = document.getElementById('statusFilter');
+    const driverFilter = document.getElementById('driverFilter');
+    const routeFilter = document.getElementById('routeFilter');
+    const busSearch = document.getElementById('busSearch');
+
+    // Filter buses
+    function filterBuses() {
+        const status = statusFilter.value.toLowerCase();
+        const driver = driverFilter.value;
+        const route = routeFilter.value;
+        const search = busSearch.value.toLowerCase();
+
+        Array.from(fleetTable.getElementsByTagName('tr')).forEach(row => {
+            if (row.cells.length === 0) return;
+            
+            const statusMatch = !status || row.cells[4].querySelector('select').value === status;
+            const driverMatch = !driver || row.cells[2].querySelector('select').value === driver;
+            const routeMatch = !route || row.cells[3].querySelector('select').value === route;
+            const searchMatch = !search || 
+                row.cells[1].textContent.toLowerCase().includes(search) ||
+                row.cells[2].textContent.toLowerCase().includes(search);
+
+            row.style.display = statusMatch && driverMatch && routeMatch && searchMatch ? '' : 'none';
+        });
+    }
+    
+    // Add Route Request Processing Functionality
+    document.querySelectorAll('.approve-request').forEach(button => {
+        button.addEventListener('click', processRouteRequest.bind(null, 'approve'));
+    });
+    
+    document.querySelectorAll('.reject-request').forEach(button => {
+        button.addEventListener('click', processRouteRequest.bind(null, 'reject'));
+    });
+    
+    async function processRouteRequest(action, event) {
+        const button = event.currentTarget;
+        const requestId = button.getAttribute('data-request-id');
+        
+        // Optionally get admin comment (can add a modal for this if needed)
+        let comment = '';
+        if (action === 'reject') {
+            comment = prompt('Please provide a reason for rejecting this request:');
+            if (comment === null) return; // User canceled
+        }
+        
+        try {
+            const response = await fetch('/api/admin/process_route_request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: action,
+                    comment: comment
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update the row status
+                const row = button.closest('tr');
+                const statusCell = row.querySelector('td:nth-child(4) span');
+                
+                if (action === 'approve') {
+                    statusCell.className = 'badge bg-success';
+                    statusCell.textContent = 'Approved';
+                } else {
+                    statusCell.className = 'badge bg-danger';
+                    statusCell.textContent = 'Rejected';
+                }
+                
+                // Disable both buttons
+                row.querySelectorAll('button').forEach(btn => {
+                    btn.disabled = true;
+                });
+                
+                // Show success message
+                showAlert(`Request ${action}d successfully`, 'success');
+            } else {
+                throw new Error(data.error || `Failed to ${action} request`);
+            }
+        } catch (error) {
+            showAlert(error.message, 'danger');
+            console.error('Error:', error);
+        }
+    }
+
+    // Add event listeners for filters
+    [statusFilter, driverFilter, routeFilter, busSearch].forEach(element => {
+        element.addEventListener('change', filterBuses);
+    });
+    busSearch.addEventListener('input', filterBuses);
+
+    // Update bus status
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const busId = this.dataset.busId;
+            const status = this.value;
+            
+            fetch(`/api/admin/update_bus_status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                },
+                body: JSON.stringify({ bus_id: busId, status: status })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Bus status updated successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to update bus status');
+                }
+            })
+            .catch(error => showAlert(error.message, 'danger'));
+        });
+    });
+
+    // Assign driver
+    document.querySelectorAll('.driver-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const busId = this.dataset.busId;
+            const driverId = this.value;
+            
+            fetch(`/api/admin/assign_driver`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                },
+                body: JSON.stringify({ bus_id: busId, driver_id: driverId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Driver assigned successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to assign driver');
+                }
+            })
+            .catch(error => showAlert(error.message, 'danger'));
+        });
+    });
+
+    // Route Management Functionality
+    const routeTable = document.getElementById('routeTable');
+    const routeStatusFilter = document.getElementById('routeStatusFilter');
+    const routeSearch = document.getElementById('routeSearch');
+    const routeSort = document.getElementById('routeSort');
+
+    // Filter routes
+    function filterRoutes() {
+        const status = routeStatusFilter.value.toLowerCase();
+        const search = routeSearch.value.toLowerCase();
+        const sortBy = routeSort.value;
+
+        const rows = Array.from(routeTable.getElementsByTagName('tr'));
+        rows.shift(); // Remove header row
+
+        // Filter
+        rows.forEach(row => {
+            if (row.cells.length === 0) return;
+            
+            const statusMatch = !status || row.cells[5].querySelector('select').value === status;
+            const searchMatch = !search || 
+                row.cells[1].textContent.toLowerCase().includes(search) ||
+                row.cells[2].textContent.toLowerCase().includes(search);
+
+            row.style.display = statusMatch && searchMatch ? '' : 'none';
+        });
+
+        // Sort
+        rows.sort((a, b) => {
+            const aValue = a.cells[sortBy === 'name' ? 1 : sortBy === 'stops' ? 3 : 4].textContent;
+            const bValue = b.cells[sortBy === 'name' ? 1 : sortBy === 'stops' ? 3 : 4].textContent;
+            return aValue.localeCompare(bValue);
+        });
+
+        // Reorder rows
+        const tbody = routeTable.querySelector('tbody');
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    // Add event listeners for route filters
+    [routeStatusFilter, routeSearch, routeSort].forEach(element => {
+        element.addEventListener('change', filterRoutes);
+    });
+    routeSearch.addEventListener('input', filterRoutes);
+
+    // View stops
+    document.querySelectorAll('.view-stops').forEach(button => {
+        button.addEventListener('click', function() {
+            const routeId = this.dataset.routeId;
+            const modal = new bootstrap.Modal(document.getElementById('viewStopsModal'));
+            
+            // Fetch route stops and display them
+            fetch(`/api/routes/${routeId}/stops`)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.querySelector('#stopsTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.stops.forEach(stop => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${stop.name}</td>
+                            <td>${stop.sequence}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary edit-stop" data-stop-id="${stop.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-stop" data-stop-id="${stop.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    // Initialize map with stops
+                    initRouteMap(data.stops);
+                });
+
+            modal.show();
+        });
+    });
+
+    // Reports Functionality
+    const reportForm = document.getElementById('reportForm');
+    const reportOutput = document.getElementById('reportOutput');
+
+    // Generate report
+    document.getElementById('generateReport')?.addEventListener('click', function() {
+        const reportType = document.getElementById('reportType').value;
+        const startDate = document.getElementById('reportStartDate').value;
+        const endDate = document.getElementById('reportEndDate').value;
+        const bus = document.getElementById('reportBusFilter').value;
+        const route = document.getElementById('reportRouteFilter').value;
+
+        if (!reportType || !startDate || !endDate) {
+            showAlert('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        fetch('/api/admin/generate_report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            },
+            body: JSON.stringify({
+                type: reportType,
+                start_date: startDate,
+                end_date: endDate,
+                bus_id: bus,
+                route_id: route
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayReport(data.report);
+            } else {
+                throw new Error(data.error || 'Failed to generate report');
+            }
+        })
+        .catch(error => showAlert(error.message, 'danger'));
+    });
+
+    // Display report
+    function displayReport(report) {
+        let content = '';
+        
+        switch(report.type) {
+            case 'fleet_utilization':
+                content = generateFleetUtilizationReport(report.data);
+                break;
+            case 'route_performance':
+                content = generateRoutePerformanceReport(report.data);
+                break;
+            case 'driver_performance':
+                content = generateDriverPerformanceReport(report.data);
+                break;
+            case 'maintenance':
+                content = generateMaintenanceReport(report.data);
+                break;
+            case 'passenger':
+                content = generatePassengerReport(report.data);
+                break;
+        }
+
+        reportOutput.innerHTML = content;
+    }
+
+    // Report generation functions
+    function generateFleetUtilizationReport(data) {
+        return `
+            <div class="report-content">
+                <h4>Fleet Utilization Report</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="utilizationChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Bus</th>
+                                        <th>Total Hours</th>
+                                        <th>Utilization %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.buses.map(bus => `
+                                        <tr>
+                                            <td>${bus.name}</td>
+                                            <td>${bus.total_hours}</td>
+                                            <td>${bus.utilization}%</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function generateRoutePerformanceReport(data) {
+        return `
+            <div class="report-content">
+                <h4>Route Performance Report</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="routePerformanceChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Route</th>
+                                        <th>On Time %</th>
+                                        <th>Avg. Delay</th>
+                                        <th>Passengers</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.routes.map(route => `
+                                        <tr>
+                                            <td>${route.name}</td>
+                                            <td>${route.on_time_percentage}%</td>
+                                            <td>${route.avg_delay} min</td>
+                                            <td>${route.total_passengers}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper function to show alerts
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        alertContainer.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+    }
+});
+</script>
+{% endblock %}

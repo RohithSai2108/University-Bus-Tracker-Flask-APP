@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}University Bus Tracker{% endblock %}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+
+    <!-- Leaflet JavaScript -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <style>
+      :root {
+        --primary-color: #3498db;
+        --secondary-color: #2ecc71;
+        --dark-color: #2c3e50;
+        --light-color: #ecf0f1;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8f9fa;
+      }
+
+      .navbar {
+        background-color: var(--dark-color);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .navbar-brand {
+        font-weight: 700;
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .btn-primary:hover {
+        background-color: #2980b9;
+        border-color: #2980b9;
+      }
+
+      .btn-success {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+      }
+
+      .btn-success:hover {
+        background-color: #27ae60;
+        border-color: #27ae60;
+      }
+
+      .card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+      }
+
+      .role-card {
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .role-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .role-card.active {
+        border: 2px solid var(--primary-color);
+      }
+
+      .hero-section {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--dark-color)
+        );
+        color: white;
+        padding: 80px 0;
+        margin-bottom: 40px;
+      }
+
+      .hero-image {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .feature-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+      }
+
+      .login-container {
+        max-width: 500px;
+        margin: 40px auto;
+      }
+
+      .auth-tabs {
+        margin-bottom: 20px;
+      }
+
+      .auth-tabs .nav-link {
+        color: var(--dark-color);
+        font-weight: 500;
+      }
+
+      .auth-tabs .nav-link.active {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+      }
+
+      .dashboard-sidebar {
+        background-color: var(--dark-color);
+        color: white;
+        min-height: calc(100vh - 56px);
+      }
+
+      .dashboard-sidebar .nav-link {
+        color: rgba(255, 255, 255, 0.8);
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+      }
+
+      .dashboard-sidebar .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      .dashboard-sidebar .nav-link.active {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .dashboard-sidebar .nav-link i {
+        margin-right: 10px;
+
+        /* Add to your existing CSS in base.html */
+        .dashboard-section {
+          display: none;
+        }
+
+        .dashboard-section.active {
+          display: block;
+        }
+
+        .card {
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container">
+        <a
+          class="navbar-brand d-flex align-items-center"
+          href="{{ url_for('index') }}"
+        >
+          <i class="fas fa-bus me-2"></i>
+          University Bus Tracker
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            {% if current_user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">
+                <i class="fas fa-sign-out-alt me-1"></i> Logout
+              </a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('login') }}">
+                <i class="fas fa-sign-in-alt me-1"></i> Login
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('register') }}">
+                <i class="fas fa-user-plus me-1"></i> Register
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show">
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %} {% block content %}{% endblock %}
+
+    <footer class="bg-dark text-light py-4 mt-5">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <h5><i class="fas fa-bus me-2"></i> University Bus Tracker</h5>
+            <p>
+              Helping students, drivers, and administrators manage university
+              transport efficiently.
+            </p>
+          </div>
+          <div class="col-md-3">
+            <h5>Quick Links</h5>
+            <ul class="list-unstyled">
+              <li>
+                <a href="{{ url_for('index') }}" class="text-light">Home</a>
+              </li>
+              <li>
+                <a href="{{ url_for('login') }}" class="text-light">Login</a>
+              </li>
+              <li>
+                <a href="{{ url_for('register') }}" class="text-light"
+                  >Register</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-3">
+            <h5>Connect</h5>
+            <div class="d-flex">
+              <a href="#" class="text-light me-3"
+                ><i class="fab fa-facebook fa-lg"></i
+              ></a>
+              <a href="#" class="text-light me-3"
+                ><i class="fab fa-twitter fa-lg"></i
+              ></a>
+              <a
+                href="https://www.instagram.com/rohith._.2004?igsh=MXB6djl0MW5uMGU4Nw=="
+                class="text-light me-3"
+                ><i class="fab fa-instagram fa-lg"></i
+              ></a>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-12 text-center">
+            <p class="mb-0">
+              &copy; {{ now.year }} University Bus Tracker. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      function getUserLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              const userLat = position.coords.latitude;
+              const userLng = position.coords.longitude;
+
+              // Store coordinates in localStorage for easy access
+              localStorage.setItem("userLat", userLat);
+              localStorage.setItem("userLng", userLng);
+
+              // You can also send this to your Flask backend
+              sendLocationToServer(userLat, userLng);
+
+              // If map is already initialized, center it on user's location
+              if (typeof mymap !== "undefined") {
+                mymap.setView([userLat, userLng], 15);
+              }
+            },
+            function (error) {
+              console.error("Error getting location:", error.message);
+            }
+          );
+        } else {
+          console.error("Geolocation is not supported by this browser.");
+        }
+      }
+
+      function sendLocationToServer(lat, lng) {
+        fetch("/api/update_user_location", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            lat: lat,
+            lng: lng,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => console.log("Success:", data))
+          .catch((error) => console.error("Error:", error));
+      }
+
+      // Request location when page loads
+      document.addEventListener("DOMContentLoaded", getUserLocation);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>
