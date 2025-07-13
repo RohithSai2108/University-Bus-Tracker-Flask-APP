@@ -2,7 +2,7 @@ from flask import jsonify, Blueprint, request
 import requests
 from urllib.parse import quote
 
-GEOAPIFY_API_KEY = "be1b0b07c3d9416a84d7b23add8f5892"
+GEOAPIFY_API_KEY = "your api key here"
 
 def get_location_details(address):
     try:
