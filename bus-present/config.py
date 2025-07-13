@@ -6,7 +6,7 @@ import os
 MAPPLS_API_KEY = os.getenv('MAPPLS_API_KEY', 'your-mappls-api-key-here')
 
 # Google Maps API Key
-GOOGLE_MAPS_API_KEY = 'AIzaSyBaqd94Q2sk7d3c3WHZD4wTT2yhztBk_08'
+GOOGLE_MAPS_API_KEY = 'your google api key'
 
 # Other configuration settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
